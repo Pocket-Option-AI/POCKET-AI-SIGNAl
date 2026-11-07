@@ -7,7 +7,7 @@ let state = {
     history: []
 };
 
-let isLoginMode = true; // Toggles between Login and Register
+let isLoginMode = true; 
 
 const canvas = document.getElementById('tradingChart');
 const ctx = canvas.getContext('2d');
@@ -44,13 +44,7 @@ async function handleAuth() {
         const data = await response.json();
 
         if (data.success) {
-            if (!isLoginMode) {
-                // If registering, automatically log them in
-                state.userId = data.userId;
-            } else {
-                state.userId = data.userId;
-            }
-            
+            state.userId = data.userId;
             document.getElementById('auth-screen').classList.remove('active');
             document.getElementById('dashboard-screen').classList.add('active');
             document.getElementById('app-body').classList.remove('light-mode');
@@ -104,7 +98,6 @@ async function placeTrade(direction) {
     if (isNaN(amount) || amount <= 0) { alert("Please enter a valid amount."); return; }
     if (amount > state.balances[state.account]) { alert("Insufficient balance in " + state.account + " account."); return; }
 
-    // 1. Deduct locally so the user sees it instantly
     state.balances[state.account] -= amount;
     updateBalanceDisplay();
 
@@ -122,7 +115,6 @@ async function placeTrade(direction) {
     state.activeTrades.push(trade);
     renderHistory();
 
-    // 2. Tell the backend to save the trade and update the database
     try {
         await fetch('/api/place-trade', {
             method: 'POST',
@@ -136,7 +128,6 @@ async function placeTrade(direction) {
         });
     } catch (error) { console.error("Failed to save trade:", error); }
 
-    // 3. Start countdown to close the trade
     setTimeout(() => { closeTrade(trade.id); }, expirySeconds * 1000);
 }
 
@@ -152,8 +143,6 @@ function closeTrade(tradeId) {
     if (trade.direction === 'SELL' && exitPrice < trade.entryPrice) isWin = true;
 
     let payout = isWin ? trade.amount * 1.92 : 0; 
-    
-    // Update local balance
     state.balances[state.account] += payout;
     updateBalanceDisplay();
 
@@ -165,7 +154,6 @@ function closeTrade(tradeId) {
     state.activeTrades.splice(tradeIndex, 1);
     renderHistory();
 
-    // Update database balance if they won (or just to sync the history)
     if (payout > 0) {
         fetch('/api/place-trade', {
             method: 'POST',
@@ -301,8 +289,12 @@ function drawChart() {
     requestAnimationFrame(drawChart);
 }
 
-// --- UI MODALS ---
-function openModal(modalId) { document.getElementById(modalId).style.display = "block"; }
+// --- UI MODALS & FETCHING ---
+function openModal(modalId) { 
+    document.getElementById(modalId).style.display = "block"; 
+    if (modalId === 'ai-modal') fetchAIStatus();
+    if (modalId === 'signals-modal') fetchLiveSignals();
+}
 function closeModal(modalId) { document.getElementById(modalId).style.display = "none"; }
 window.onclick = function(event) { if (event.target.classList.contains('modal')) event.target.style.display = "none"; }
 
@@ -311,3 +303,47 @@ document.getElementById('trade-amount').addEventListener('input', (e) => {
     let profit = amount * 0.92; 
     document.getElementById('potential-profit').innerText = "+$" + profit.toFixed(2);
 });
+
+// Fetch AI Status
+async function fetchAIStatus() {
+    try {
+        const response = await fetch('/api/ai-status');
+        const data = await response.json();
+        if (data.success) {
+            document.getElementById('ai-modal').innerHTML = `
+                <div class="modal-content">
+                    <span class="close-btn" onclick="closeModal('ai-modal')">&times;</span>
+                    <h2>AI Trader Engine</h2>
+                    <p style="margin-top:10px;">RSI: <b>${data.rsi}</b></p>
+                    <p>Trend: <b>${data.trend}</b></p>
+                    <p>Volatility: <b>${data.volatility}</b></p>
+                    <p style="margin-top:10px; font-size: 18px;">Suggestion: <b style="color:${data.suggestion === 'BUY' ? '#22c55e' : data.suggestion === 'SELL' ? '#ef4444' : '#3b82f6'}">${data.suggestion}</b></p>
+                </div>
+            `;
+        }
+    } catch (e) { console.error(e); }
+}
+
+// Fetch Live Signals
+async function fetchLiveSignals() {
+    try {
+        const response = await fetch('/api/live-signal');
+        const data = await response.json();
+        if (data.success) {
+            document.getElementById('signals-modal').innerHTML = `
+                <div class="modal-content">
+                    <span class="close-btn" onclick="closeModal('signals-modal')">&times;</span>
+                    <h2>AI Forex Signals</h2>
+                    <div class="signal-card" style="margin-top: 15px; border-left: 4px solid #3b82f6; padding-left: 10px;">
+                        <div style="display:flex; justify-content:space-between; font-weight:bold; margin-bottom: 5px;">
+                            <span>${data.pair}</span>
+                            <span style="color:${data.direction === 'BUY' ? '#22c55e' : '#ef4444'}">${data.direction}</span>
+                        </div>
+                        <p>Entry: ${data.entry} | TP: ${data.tp} | SL: ${data.sl}</p>
+                        <p style="font-size: 12px; color: #94a3b8;">Strength: ${data.strength}%</p>
+                    </div>
+                </div>
+            `;
+        }
+    } catch (e) { console.error(e); }
+}
