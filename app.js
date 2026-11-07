@@ -108,7 +108,10 @@ async function loadUserData() {
 }
 
 function updateBalanceDisplay() {
-    state.account = 'demo'; 
+    let accountTypeEl = document.getElementById('account-type');
+    if (accountTypeEl) {
+        state.account = accountTypeEl.value;
+    }
     let balance = state.balances[state.account] || 0;
     
     let headerBal = document.getElementById('display-balance');
@@ -253,7 +256,6 @@ function initChart() {
 function startChartEngine(speed) {
     initChart(); isChartRunning = true;
     if (ws) ws.close();
-    // Still using live Binance data feed for realistic movement
     ws = new WebSocket('wss://stream.binance.com:9443/ws/eurusdt@trade');
     ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
@@ -262,6 +264,10 @@ function startChartEngine(speed) {
             prices.push(currentPrice); timestamps.push(Date.now());
             if (prices.length > maxPoints) { prices.shift(); timestamps.shift(); }
             let decimals = currentPrice > 10 ? 3 : 5;
+            
+            let priceDisplay = document.getElementById('current-price-display');
+            if (priceDisplay) priceDisplay.innerText = currentPrice.toFixed(decimals);
+            
             document.getElementById('live-price').innerText = `Active: ${state.activeTrades.length} | Price: ${currentPrice.toFixed(decimals)}`;
         }
     };
