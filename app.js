@@ -15,22 +15,18 @@ let width, height;
 let prices = [];
 let timestamps = [];
 let maxPoints = 100;
-let currentPrice = 1.68500;
-let volatility = 0.00015; 
+let currentPrice = 1.08500;
 let isChartRunning = false;
-let updateInterval = null; 
+let ws = null; // WebSocket connection
 
 // Control Listeners
 document.getElementById('currency-pair').addEventListener('change', (e) => {
     let pair = e.target.value;
     document.getElementById('current-pair-name').innerText = pair;
     
-    if (pair === 'EUR/USD') { currentPrice = 1.08500; volatility = 0.00010; }
-    else if (pair === 'GBP/USD') { currentPrice = 1.26500; volatility = 0.00012; }
-    else if (pair === 'USD/JPY') { currentPrice = 150.500; volatility = 0.01500; }
-    else if (pair === 'AED/CNY OTC') { currentPrice = 1.68500; volatility = 0.00015; }
-    
-    initChart(); 
+    if (pair !== 'EUR/USD') {
+        alert("Note: Live WebSocket data is currently locked to EUR/USD for this demo.");
+    }
 });
 
 document.getElementById('chart-timeframe').addEventListener('change', (e) => {
@@ -45,7 +41,6 @@ function login() {
     document.getElementById('app-body').classList.remove('light-mode');
     updateBalanceDisplay();
     
-    // Connect to the backend to get the real saved balances
     syncBalancesFromServer(); 
     
     startChartEngine(15); 
@@ -79,7 +74,6 @@ function placeTrade(direction) {
 
     state.balances[state.account] -= amount;
     
-    // Save deduction to the backend server and alert Telegram
     saveTradeToServer(state.account, -amount, {
         pair: pair,
         direction: direction,
@@ -120,7 +114,6 @@ function closeTrade(tradeId) {
     let payout = isWin ? trade.amount * 1.92 : 0; 
     state.balances[state.account] += payout;
     
-    // Save payout to the backend server
     saveTradeToServer(state.account, payout);
     
     updateBalanceDisplay();
@@ -168,42 +161,37 @@ function initChart() {
     prices = [];
     timestamps = [];
     let now = Date.now();
+    // Pre-fill with the live price so the chart doesn't start empty
     for (let i = 0; i < maxPoints; i++) {
-        generateNextPrice();
+        prices.push(currentPrice);
         timestamps.push(now - ((maxPoints - i) * 1000)); 
     }
 }
 
-function generateNextPrice() {
-    let change = (Math.random() - 0.5) * volatility;
-    if (Math.random() > 0.95) change *= 3; 
-    currentPrice += change;
-    
-    let basePrice = document.getElementById('currency-pair').value === 'EUR/USD' ? 1.08500 : 
-                    document.getElementById('currency-pair').value === 'GBP/USD' ? 1.26500 : 
-                    document.getElementById('currency-pair').value === 'USD/JPY' ? 150.500 : 1.68500;
-                    
-    if (currentPrice > basePrice + (volatility * 20)) currentPrice -= volatility * 2;
-    if (currentPrice < basePrice - (volatility * 20)) currentPrice += volatility * 2;
-    
-    prices.push(currentPrice);
-    timestamps.push(Date.now());
-    
-    if (prices.length > maxPoints) { prices.shift(); timestamps.shift(); }
-}
-
 function startChartEngine(speed) {
-    if (updateInterval) clearInterval(updateInterval); 
     initChart();
     isChartRunning = true;
     
-    updateInterval = setInterval(() => {
-        if (!isChartRunning) return;
-        generateNextPrice();
-        let pair = document.getElementById('currency-pair').value;
-        let decimals = pair === 'USD/JPY' ? 3 : 5;
-        document.getElementById('live-price').innerText = `Active: ${state.activeTrades.length} | Price: ${currentPrice.toFixed(decimals)}`;
-    }, speed * 200); 
+    // Close old connection if it exists
+    if (ws) ws.close();
+
+    // Connect to a real live Forex WebSocket (EUR/USDT is highly correlated to EUR/USD)
+    ws = new WebSocket('wss://stream.binance.com:9443/ws/eurusdt@trade');
+
+    ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.p) {
+            currentPrice = parseFloat(data.p);
+            
+            prices.push(currentPrice);
+            timestamps.push(Date.now());
+            
+            if (prices.length > maxPoints) { prices.shift(); timestamps.shift(); }
+            
+            let decimals = currentPrice > 10 ? 3 : 5;
+            document.getElementById('live-price').innerText = `Active: ${state.activeTrades.length} | Price: ${currentPrice.toFixed(decimals)}`;
+        }
+    };
 
     if (prices.length > 0) requestAnimationFrame(drawChart);
 }
@@ -263,8 +251,7 @@ function drawChart() {
     let lastPrice = prices[prices.length - 1];
     let lastX = (prices.length - 1) * stepX;
     let lastY = getY(lastPrice);
-    let pair = document.getElementById('currency-pair').value;
-    let decimals = pair === 'USD/JPY' ? 3 : 5;
+    let decimals = lastPrice > 10 ? 3 : 5;
 
     ctx.beginPath();
     ctx.strokeStyle = 'rgba(59, 130, 246, 0.5)';
@@ -325,7 +312,6 @@ async function syncBalancesFromServer() {
             state.balances.demo = data.demoBalance;
             state.balances.real = data.realBalance;
             updateBalanceDisplay();
-            console.log("Balances synced with server!");
         }
     } catch (error) {
         console.error("Error connecting to backend:", error);
