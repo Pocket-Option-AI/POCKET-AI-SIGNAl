@@ -116,7 +116,6 @@
         </nav>
     </div>
 
-    <!-- SOCIAL TRADING PAGE -->
     <div id="social-menu" class="profile-menu">
         <div class="profile-header">
             <div>
@@ -127,15 +126,10 @@
         </div>
 
         <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 20px;">
-            
-            <!-- Trader 1 -->
             <div class="trader-card">
                 <div class="trader-info">
                     <span class="badge gold">🥇</span>
-                    <div>
-                        <div style="font-weight: bold; color: white;">Alex Forex</div>
-                        <div style="font-size: 11px; color: #94a3b8;">Win Rate: 84%</div>
-                    </div>
+                    <div><div style="font-weight: bold; color: white;">Alex Forex</div><div style="font-size: 11px; color: #94a3b8;">Win Rate: 84%</div></div>
                 </div>
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <span style="color: #22c55e; font-weight: bold;">+$2,450</span>
@@ -143,14 +137,10 @@
                 </div>
             </div>
 
-            <!-- Trader 2 -->
             <div class="trader-card">
                 <div class="trader-info">
                     <span class="badge silver">🥈</span>
-                    <div>
-                        <div style="font-weight: bold; color: white;">Sarah J.</div>
-                        <div style="font-size: 11px; color: #94a3b8;">Win Rate: 79%</div>
-                    </div>
+                    <div><div style="font-weight: bold; color: white;">Sarah J.</div><div style="font-size: 11px; color: #94a3b8;">Win Rate: 79%</div></div>
                 </div>
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <span style="color: #22c55e; font-weight: bold;">+$1,820</span>
@@ -158,14 +148,10 @@
                 </div>
             </div>
 
-            <!-- Trader 3 -->
             <div class="trader-card">
                 <div class="trader-info">
                     <span class="badge bronze">🥉</span>
-                    <div>
-                        <div style="font-weight: bold; color: white;">Mike T.</div>
-                        <div style="font-size: 11px; color: #94a3b8;">Win Rate: 75%</div>
-                    </div>
+                    <div><div style="font-weight: bold; color: white;">Mike T.</div><div style="font-size: 11px; color: #94a3b8;">Win Rate: 75%</div></div>
                 </div>
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <span style="color: #22c55e; font-weight: bold;">+$1,150</span>
@@ -173,14 +159,10 @@
                 </div>
             </div>
 
-            <!-- Trader 4 -->
             <div class="trader-card">
                 <div class="trader-info">
                     <span class="badge">4</span>
-                    <div>
-                        <div style="font-weight: bold; color: white;">David K.</div>
-                        <div style="font-size: 11px; color: #94a3b8;">Win Rate: 68%</div>
-                    </div>
+                    <div><div style="font-weight: bold; color: white;">David K.</div><div style="font-size: 11px; color: #94a3b8;">Win Rate: 68%</div></div>
                 </div>
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <span style="color: #22c55e; font-weight: bold;">+$890</span>
@@ -188,21 +170,16 @@
                 </div>
             </div>
 
-            <!-- Trader 5 -->
             <div class="trader-card">
                 <div class="trader-info">
                     <span class="badge">5</span>
-                    <div>
-                        <div style="font-weight: bold; color: white;">Elena R.</div>
-                        <div style="font-size: 11px; color: #94a3b8;">Win Rate: 62%</div>
-                    </div>
+                    <div><div style="font-weight: bold; color: white;">Elena R.</div><div style="font-size: 11px; color: #94a3b8;">Win Rate: 62%</div></div>
                 </div>
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <span style="color: #22c55e; font-weight: bold;">+$540</span>
                     <button class="btn-copy" onclick="copyTrader('Elena R.')">Copy</button>
                 </div>
             </div>
-
         </div>
     </div>
 
@@ -241,6 +218,20 @@
             <div class="menu-item" onclick="alert('Coming Soon')"><span>🇬🇧 English</span> <span>></span></div>
             <div class="menu-item" onclick="window.open('https://t.me/JAMES_AI_TRADING_BOT', '_blank')"><span>🎧 Support</span> <span>></span></div>
             <div class="menu-item" style="color: #ef4444; margin-top: 20px; border-bottom: none;" onclick="logout()"><span>🚪 Log Out</span></div>
+        </div>
+    </div>
+
+    <!-- AI SIGNALS MODAL (Redesigned) -->
+    <div id="signals-modal" class="modal">
+        <div class="modal-content ai-card" id="signals-content">
+            <!-- Data will be injected here -->
+        </div>
+    </div>
+
+    <!-- AI TRADER MODAL (Redesigned) -->
+    <div id="ai-modal" class="modal">
+        <div class="modal-content ai-card" id="ai-content">
+            <!-- Data will be injected here -->
         </div>
     </div>
 
@@ -283,9 +274,6 @@
             </div>
         </div>
     </div>
-
-    <div id="signals-modal" class="modal"><div class="modal-content"><span class="close-btn" onclick="closeModal('signals-modal')">&times;</span><h2>AI Forex Signals</h2><p>Loading live signals...</p></div></div>
-    <div id="ai-modal" class="modal"><div class="modal-content"><span class="close-btn" onclick="closeModal('ai-modal')">&times;</span><h2>AI Trader Engine</h2><p>Loading analysis...</p></div></div>
 
     <script src="app.js"></script>
 </body>
