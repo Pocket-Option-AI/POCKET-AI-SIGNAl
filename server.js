@@ -35,10 +35,14 @@ async function sendTelegramMessage(message) {
 // --- DATABASE (Temporary Memory) ---
 let serverBalances = { demo: 50000, real: 110 };
 
+// --- API ENDPOINTS ---
+
+// 1. Get Balances
 app.get('/api/get-balance', (req, res) => {
     res.json({ success: true, demoBalance: serverBalances.demo, realBalance: serverBalances.real });
 });
 
+// 2. Update Balance (When a trade is placed or closed)
 app.post('/api/update-balance', (req, res) => {
     const { accountType, amount, tradeData } = req.body;
     
@@ -62,8 +66,23 @@ app.post('/api/update-balance', (req, res) => {
     }
 });
 
+// 3. AI Status Endpoint (For the AI Trader Modal)
+app.get('/api/ai-status', (req, res) => {
+    let mockRSI = Math.floor(Math.random() * 40) + 30; // Random RSI between 30 and 70
+    let trend = mockRSI > 50 ? "Bullish" : "Bearish";
+    let suggestion = mockRSI > 60 ? "BUY" : mockRSI < 40 ? "SELL" : "NEUTRAL";
+    
+    res.json({
+        success: true,
+        rsi: mockRSI,
+        trend: trend,
+        volatility: "Medium",
+        suggestion: suggestion,
+        lastUpdated: new Date().toLocaleTimeString()
+    });
+});
+
 // --- AI SIGNAL GENERATOR ENGINE ---
-// We will simulate a moving average crossover strategy to generate signals
 let priceHistory = [];
 
 function generateAISignal() {
@@ -82,11 +101,9 @@ function generateAISignal() {
 
         let signal = null;
 
-        // If Short SMA crosses above Long SMA -> BUY
         if (shortSMA > longSMA && (shortSMA - longSMA) > 0.0002) {
             signal = "BUY";
         } 
-        // If Short SMA crosses below Long SMA -> SELL
         else if (shortSMA < longSMA && (longSMA - shortSMA) > 0.0002) {
             signal = "SELL";
         }
@@ -107,7 +124,6 @@ function generateAISignal() {
             console.log(`AI generated a ${signal} signal! Sending to Telegram...`);
             sendTelegramMessage(msg);
             
-            // Clear history to prevent spamming the same signal
             priceHistory = []; 
         }
     }
@@ -116,6 +132,7 @@ function generateAISignal() {
 // Run the AI engine every 30 seconds
 setInterval(generateAISignal, 30000);
 
+// Start the server
 app.listen(PORT, () => {
     console.log(`Backend Server running on port ${PORT}`);
     console.log(`AI Signal Engine is active and scanning the market...`);
