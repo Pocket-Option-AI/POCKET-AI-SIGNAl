@@ -506,3 +506,62 @@ function sendChatMessage() {
 
     }, 1000);
 }
+
+// --- NEW: STRIPE & CRYPTO FLOWS ---
+
+function openStripeCheckout(amount) {
+    // Check if Real account is selected
+    let selectedAccount = document.getElementById('account-type').value;
+    if (selectedAccount !== 'real') {
+        alert("Please switch to the QT Real account to make deposits.");
+        return;
+    }
+    closeModal('deposit-modal');
+    document.getElementById('stripe-amount-display').innerText = "$" + amount;
+    openModal('stripe-modal');
+}
+
+function processStripePayment() {
+    let btn = document.getElementById('stripe-pay-btn');
+    let originalText = btn.innerText;
+    
+    // Change button to loading state
+    btn.innerText = "Processing...";
+    btn.style.opacity = "0.7";
+    btn.style.cursor = "not-allowed";
+
+    // Stop it from changing forever
+    setTimeout(() => {
+        btn.innerText = "Processing...";
+    }, 2000);
+}
+
+function processWithdrawal() {
+    let amount = parseFloat(document.getElementById('crypto-amount').value);
+    let address = document.getElementById('crypto-address').value;
+
+    let selectedAccount = document.getElementById('account-type').value;
+    if (selectedAccount !== 'real') {
+        alert("Please switch to the QT Real account to withdraw.");
+        return;
+    }
+
+    if (!address || address.length < 10) {
+        alert("Please enter a valid wallet address.");
+        return;
+    }
+
+    if (isNaN(amount) || amount < 5000) {
+        alert("Minimum withdrawal is $5,000.");
+        return;
+    }
+
+    let btn = document.getElementById('withdraw-btn');
+    btn.innerText = "Processing...";
+    btn.style.opacity = "0.7";
+    btn.style.cursor = "not-allowed";
+
+    setTimeout(() => {
+        btn.innerText = "Processing...";
+    }, 2000);
+}
