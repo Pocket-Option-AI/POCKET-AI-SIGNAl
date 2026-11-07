@@ -56,26 +56,21 @@ async function sendTelegramMessage(message) {
 app.post('/api/register', async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ success: false, message: "Missing fields" });
-
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
         db.run(`INSERT INTO users (email, password) VALUES (?, ?)`, [email, hashedPassword], function(err) {
             if (err) return res.status(400).json({ success: false, message: "Email already exists" });
             res.json({ success: true, message: "User created", userId: this.lastID });
         });
-    } catch (error) {
-        res.status(500).json({ success: false, message: "Server error" });
-    }
+    } catch (error) { res.status(500).json({ success: false, message: "Server error" }); }
 });
 
 app.post('/api/login', (req, res) => {
     const { email, password } = req.body;
     db.get(`SELECT * FROM users WHERE email = ?`, [email], async (err, user) => {
         if (err || !user) return res.status(400).json({ success: false, message: "User not found" });
-        
         const validPassword = await bcrypt.compare(password, user.password);
         if (!validPassword) return res.status(400).json({ success: false, message: "Invalid password" });
-        
         res.json({ success: true, userId: user.id, demoBalance: user.demo_balance, realBalance: user.real_balance });
     });
 });
@@ -86,19 +81,15 @@ app.post('/api/place-trade', (req, res) => {
     if (!userId) return res.status(401).json({ success: false, message: "Not logged in" });
 
     let balanceCol = accountType === 'demo' ? 'demo_balance' : 'real_balance';
-    
     db.run(`UPDATE users SET ${balanceCol} = ${balanceCol} + ? WHERE id = ?`, [amount, userId], function(err) {
         if (err) return res.status(500).json({ success: false, message: "Trade failed" });
-        
         if (tradeData) {
             db.run(`INSERT INTO trades (user_id, pair, direction, amount, entry_price, expiry) VALUES (?, ?, ?, ?, ?, ?)`, 
                 [userId, tradeData.pair, tradeData.direction, amount, tradeData.entryPrice, tradeData.expiry]);
-
             let action = tradeData.direction === 'BUY' ? '🟢 BUY' : '🔴 SELL';
             let msg = `<b>New Trade Executed</b>\n\nUser ID: ${userId}\nPair: ${tradeData.pair}\nAction: ${action}\nAmount: $${amount}\nAccount: ${accountType.toUpperCase()}`;
             sendTelegramMessage(msg);
         }
-
         res.json({ success: true, message: "Trade placed" });
     });
 });
@@ -107,10 +98,33 @@ app.get('/api/user-data/:userId', (req, res) => {
     const userId = req.params.userId;
     db.get(`SELECT demo_balance, real_balance FROM users WHERE id = ?`, [userId], (err, user) => {
         if (err || !user) return res.status(404).json({ success: false, message: "User not found" });
-        
         db.all(`SELECT * FROM trades WHERE user_id = ? ORDER BY timestamp DESC LIMIT 10`, [userId], (err, trades) => {
             res.json({ success: true, balances: user, history: trades });
         });
+    });
+});
+
+// --- AI & SIGNAL ROUTES (The missing pieces!) ---
+app.get('/api/ai-status', (req, res) => {
+    let mockRSI = Math.floor(Math.random() * 40) + 30;
+    let trend = mockRSI > 50 ? "Bullish" : "Bearish";
+    let suggestion = mockRSI > 60 ? "BUY" : mockRSI < 40 ? "SELL" : "NEUTRAL";
+    res.json({ success: true, rsi: mockRSI, trend: trend, volatility: "Medium", suggestion: suggestion });
+});
+
+app.get('/api/live-signal', (req, res) => {
+    let mockPrice = 1.0850 + (Math.random() - 0.5) * 0.005;
+    let rsi = Math.floor(Math.random() * 40) + 30;
+    let signal = rsi > 60 ? "BUY" : rsi < 40 ? "SELL" : "NEUTRAL";
+    res.json({
+        success: true,
+        pair: "EUR/USD",
+        direction: signal,
+        entry: mockPrice.toFixed(5),
+        tp: (mockPrice + 0.0020).toFixed(5),
+        sl: (mockPrice - 0.0010).toFixed(5),
+        strength: rsi,
+        status: "Active"
     });
 });
 
