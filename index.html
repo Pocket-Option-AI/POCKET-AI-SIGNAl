@@ -136,7 +136,6 @@
                     <button class="btn-copy" onclick="copyTrader('Alex Forex')">Copy</button>
                 </div>
             </div>
-
             <div class="trader-card">
                 <div class="trader-info">
                     <span class="badge silver">🥈</span>
@@ -147,7 +146,6 @@
                     <button class="btn-copy" onclick="copyTrader('Sarah J.')">Copy</button>
                 </div>
             </div>
-
             <div class="trader-card">
                 <div class="trader-info">
                     <span class="badge bronze">🥉</span>
@@ -158,7 +156,6 @@
                     <button class="btn-copy" onclick="copyTrader('Mike T.')">Copy</button>
                 </div>
             </div>
-
             <div class="trader-card">
                 <div class="trader-info">
                     <span class="badge">4</span>
@@ -169,7 +166,6 @@
                     <button class="btn-copy" onclick="copyTrader('David K.')">Copy</button>
                 </div>
             </div>
-
             <div class="trader-card">
                 <div class="trader-info">
                     <span class="badge">5</span>
@@ -197,7 +193,7 @@
         </div>
         <div class="profile-buttons">
             <button class="btn-deposit" onclick="openModal('deposit-modal')">Deposit</button>
-            <button class="btn-withdraw" onclick="alert('Withdrawal requires KYC.')">Withdraw</button>
+            <button class="btn-withdraw" onclick="openModal('withdraw-modal')">Withdraw</button>
         </div>
         <div class="promo-cards">
             <div class="promo-card promo-1">PROMO</div>
@@ -255,18 +251,68 @@
         </div>
     </div>
 
+    <!-- DEPOSIT AMOUNT SELECTION MODAL -->
     <div id="deposit-modal" class="modal">
         <div class="modal-content">
             <span class="close-btn" onclick="closeModal('deposit-modal')">&times;</span>
-            <h2>Deposit Funds</h2>
+            <h2>Select Deposit Amount</h2>
             <div class="settings-list" style="margin-top:15px;">
-                <div class="settings-item" onclick="alert('Payment Loading...')">$10</div>
-                <div class="settings-item" onclick="alert('Payment Loading...')">$50</div>
-                <div class="settings-item" onclick="alert('Payment Loading...')">$100</div>
-                <div class="settings-item" onclick="alert('Payment Loading...')">$500</div>
-                <div class="settings-item" onclick="alert('Payment Loading...')">$1000</div>
-                <div class="settings-item" onclick="alert('Payment Loading...')">$5000</div>
+                <div class="settings-item" onclick="openStripeCheckout(10)">$10</div>
+                <div class="settings-item" onclick="openStripeCheckout(50)">$50</div>
+                <div class="settings-item" onclick="openStripeCheckout(100)">$100</div>
+                <div class="settings-item" onclick="openStripeCheckout(500)">$500</div>
+                <div class="settings-item" onclick="openStripeCheckout(1000)">$1000</div>
+                <div class="settings-item" onclick="openStripeCheckout(5000)">$5000</div>
             </div>
+        </div>
+    </div>
+
+    <!-- STRIPE CHECKOUT MODAL -->
+    <div id="stripe-modal" class="modal">
+        <div class="modal-content" style="background: #ffffff; color: #1a202c;">
+            <span class="close-btn" onclick="closeModal('stripe-modal')" style="color: #64748b;">&times;</span>
+            <div style="text-align: center; margin-bottom: 20px;">
+                <h2 style="font-size: 18px; color: #1a202c;">Pay with Card</h2>
+                <p style="font-size: 24px; font-weight: bold; color: #22c55e; margin-top: 5px;" id="stripe-amount-display">$0.00</p>
+            </div>
+            <input type="email" placeholder="Email" style="width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc; font-size: 14px;">
+            <input type="text" placeholder="Card Number" maxlength="16" style="width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc; font-size: 14px;">
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <input type="text" placeholder="MM / YY" maxlength="5" style="flex: 1; padding: 12px; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc; font-size: 14px;">
+                <input type="text" placeholder="CVC" maxlength="3" style="flex: 1; padding: 12px; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc; font-size: 14px;">
+            </div>
+            <button id="stripe-pay-btn" onclick="processStripePayment()" style="width: 100%; padding: 14px; background: #2563eb; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">Pay</button>
+        </div>
+    </div>
+
+    <!-- WITHDRAWAL MODAL -->
+    <div id="withdraw-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal('withdraw-modal')">&times;</span>
+            <h2>Withdraw Funds</h2>
+            <p style="font-size: 12px; color: #94a3b8; margin-bottom: 15px;">Minimum withdrawal: $5,000</p>
+            
+            <div style="margin-bottom: 15px;">
+                <label style="font-size: 12px; color: #94a3b8;">Select Network</label>
+                <select id="crypto-network" style="width: 100%; padding: 12px; background: #0b1120; border: 1px solid #1e293b; color: white; border-radius: 8px; margin-top: 5px; outline: none;">
+                    <option value="USDT_TRC20">USDT (TRC20)</option>
+                    <option value="USDT_ERC20">USDT (ERC20)</option>
+                    <option value="BTC">Bitcoin (BTC)</option>
+                    <option value="ETH">Ethereum (ETH)</option>
+                </select>
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="font-size: 12px; color: #94a3b8;">Wallet Address</label>
+                <input type="text" id="crypto-address" placeholder="Enter wallet address" style="width: 100%; padding: 12px; background: #0b1120; border: 1px solid #1e293b; color: white; border-radius: 8px; margin-top: 5px; outline: none;">
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="font-size: 12px; color: #94a3b8;">Amount ($)</label>
+                <input type="number" id="crypto-amount" placeholder="Min $5000" style="width: 100%; padding: 12px; background: #0b1120; border: 1px solid #1e293b; color: white; border-radius: 8px; margin-top: 5px; outline: none;">
+            </div>
+
+            <button id="withdraw-btn" onclick="processWithdrawal()" style="width: 100%; padding: 14px; background: #ef4444; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">Confirm Withdrawal</button>
         </div>
     </div>
 
