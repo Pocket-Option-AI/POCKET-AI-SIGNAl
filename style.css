@@ -18,7 +18,7 @@ body { overflow-y: auto; overflow-x: hidden; transition: background 0.3s ease, c
 .switch-auth { text-align: center; margin-top: 15px; font-size: 13px; color: #2563eb; cursor: pointer; }
 
 /* DARK MODE (DASHBOARD) */
-#dashboard-screen { background: #0b1120; color: #e2e8f0; padding-bottom: 70px; }
+#dashboard-screen { background: #0b1120; color: #e2e8f0; padding-bottom: 80px; }
 
 /* HEADER */
 .top-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; background: #151e32; border-bottom: 1px solid #1e293b; position: sticky; top: 0; z-index: 100; }
@@ -32,12 +32,22 @@ body { overflow-y: auto; overflow-x: hidden; transition: background 0.3s ease, c
 
 /* CHART WRAPPER & MOUNTAIN BACKGROUND */
 .chart-wrapper { position: relative; height: 350px; background: #0f172a; margin: 0 10px; border-radius: 8px; overflow: hidden; border: 1px solid #1e293b; background-image: url('https://images.unsplash.com/photo-1614027164847-1b28cfe1df60?q=80&w=1000&auto=format&fit=crop'); background-size: cover; background-position: center; background-blend-mode: overlay; }
-.chart-header-info { position: absolute; top: 10px; left: 10px; z-index: 10; display: flex; flex-direction: column; }
-.active-badge { font-size: 11px; color: #60a5fa; background: rgba(15, 23, 42, 0.7); padding: 2px 6px; border-radius: 4px; }
+.chart-header-info { position: absolute; top: 10px; left: 10px; z-index: 10; display: flex; flex-direction: column; background: rgba(15, 23, 42, 0.7); padding: 8px; border-radius: 6px; }
+.active-badge { font-size: 10px; color: #60a5fa; }
 canvas { width: 100%; height: 100%; display: block; }
 
 /* TRADING PANEL */
 .trade-panel { padding: 15px; background: #0b1120; margin-top: 10px; }
+
+/* LIVE SLIDER */
+.slider-container { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+.slider-label { font-size: 11px; font-weight: bold; }
+.slider-label.green { color: #22c55e; }
+.slider-label.red { color: #ef4444; }
+.trade-slider { flex: 1; -webkit-appearance: none; appearance: none; height: 8px; border-radius: 5px; outline: none; background: linear-gradient(to right, #22c55e 9%, #ef4444 9%); }
+.trade-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; border-radius: 50%; background: white; cursor: pointer; border: 2px solid #1e293b; }
+
+/* INPUTS */
 .input-row { display: flex; gap: 10px; margin-bottom: 15px; }
 .input-group { flex: 1; }
 .input-group label { display: block; font-size: 11px; color: #94a3b8; margin-bottom: 5px; }
@@ -67,6 +77,27 @@ canvas { width: 100%; height: 100%; display: block; }
 .nav-item.active { color: #3b82f6; }
 .nav-item.classic-mode { color: #fff; background: linear-gradient(135deg, #10b981, #ef4444); padding: 5px 15px; border-radius: 8px; box-shadow: 0 0 10px rgba(16, 185, 129, 0.5); }
 
+/* FULL-SCREEN PROFILE MENU */
+.profile-menu { position: fixed; top: 0; right: -100%; width: 100%; height: 100%; background: #0f172a; z-index: 500; transition: right 0.3s ease; padding: 20px; overflow-y: auto; }
+.profile-menu.open { right: 0; }
+.profile-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.profile-balance { background: #151e32; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+.profile-balance h3 { color: #22c55e; font-size: 24px; margin-top: 5px; }
+.profile-buttons { display: flex; gap: 10px; margin-bottom: 20px; }
+.profile-buttons button { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+.btn-deposit { background: #22c55e; color: white; }
+.btn-withdraw { background: #1e293b; color: white; border: 1px solid #22c55e; }
+
+/* PROMO CARDS & MENU */
+.promo-cards { display: flex; gap: 10px; margin-bottom: 20px; }
+.promo-card { flex: 1; height: 70px; border-radius: 8px; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 10px; font-weight: bold; color: white; cursor: pointer; }
+.promo-1 { background: linear-gradient(135deg, #a855f7, #ec4899); }
+.promo-2 { background: linear-gradient(135deg, #3b82f6, #06b6d4); }
+.promo-3 { background: linear-gradient(135deg, #4c1d95, #6d28d9); }
+.profile-links { display: flex; flex-direction: column; }
+.menu-item { padding: 15px 0; border-bottom: 1px solid #1e293b; font-size: 14px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+.menu-item:hover { color: white; }
+
 /* MODALS */
 .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); backdrop-filter: blur(3px); }
 .modal-content { background-color: #151e32; margin: 15% auto; padding: 20px; border: 1px solid #1e293b; width: 90%; max-width: 400px; border-radius: 12px; color: #e2e8f0; position: relative; }
@@ -77,13 +108,3 @@ canvas { width: 100%; height: 100%; display: block; }
 .settings-list { display: flex; flex-direction: column; gap: 10px; }
 .settings-item { display: flex; justify-content: space-between; align-items: center; background: #0b1120; padding: 15px; border-radius: 8px; cursor: pointer; border: 1px solid #1e293b; }
 .settings-item:hover { background: #1e293b; }
-
-/* PROMO CARDS & MENU */
-.promo-cards { display: flex; gap: 10px; margin-bottom: 15px; }
-.promo-card { flex: 1; height: 60px; border-radius: 8px; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 9px; font-weight: bold; color: white; cursor: pointer; }
-.promo-1 { background: linear-gradient(135deg, #a855f7, #ec4899); }
-.promo-2 { background: linear-gradient(135deg, #3b82f6, #06b6d4); }
-.promo-3 { background: linear-gradient(135deg, #4c1d95, #6d28d9); }
-.drawer-menu { display: flex; flex-direction: column; }
-.menu-item { padding: 12px 0; border-bottom: 1px solid #1e293b; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 10px; }
-.menu-item:hover { color: white; }
