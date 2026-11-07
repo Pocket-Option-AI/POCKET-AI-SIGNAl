@@ -16,11 +16,11 @@
                 <p>Professional Trading Platform</p>
             </div>
             <div class="auth-box">
-                <h2>Welcome Back</h2>
-                <input type="text" id="login-email" placeholder="Email Address" value="demo@pocket-ai-signal.com">
-                <input type="password" id="login-pass" placeholder="Password" value="password123">
-                <button onclick="login()" class="btn-primary">Log In</button>
-                <p class="switch-auth" onclick="alert('Registration functionality ready for backend integration.')">Don't have an account? Register</p>
+                <h2 id="auth-title">Welcome Back</h2>
+                <input type="email" id="login-email" placeholder="Email Address">
+                <input type="password" id="login-pass" placeholder="Password">
+                <button id="auth-btn" onclick="handleAuth()" class="btn-primary">Log In</button>
+                <p id="switch-text" class="switch-auth" onclick="toggleAuthMode()">Don't have an account? Register</p>
             </div>
         </div>
     </div>
@@ -36,7 +36,7 @@
                     <option value="demo">Demo Account</option>
                     <option value="real">Real Account</option>
                 </select>
-                <div class="balance" id="display-balance">$50,000.00</div>
+                <div class="balance" id="display-balance">$0.00</div>
             </div>
             <div class="wallet-icon" onclick="openModal('wallet-modal')">💳</div>
         </header>
@@ -45,9 +45,6 @@
         <div class="chart-controls">
             <select id="currency-pair">
                 <option value="EUR/USD">EUR/USD</option>
-                <option value="GBP/USD">GBP/USD</option>
-                <option value="USD/JPY">USD/JPY</option>
-                <option value="AED/CNY OTC" selected>AED/CNY OTC</option>
             </select>
             <select id="chart-timeframe">
                 <option value="5">5 sec</option>
@@ -59,7 +56,7 @@
         <!-- CANVAS CHART -->
         <div class="chart-wrapper">
             <div class="chart-header-info">
-                <span id="current-pair-name">AED/CNY OTC</span>
+                <span id="current-pair-name">EUR/USD</span>
                 <span class="active-badge" id="live-price">Active: 0</span>
             </div>
             <canvas id="tradingChart"></canvas>
@@ -112,119 +109,53 @@
         </nav>
     </div>
 
-    <!-- ============================================== -->
-    <!-- MODALS (POPUP SCREENS) FOR ALL FEATURES -->
-    <!-- ============================================== -->
-
-    <!-- WALLET MODAL -->
+    <!-- MODALS -->
     <div id="wallet-modal" class="modal">
         <div class="modal-content">
             <span class="close-btn" onclick="closeModal('wallet-modal')">&times;</span>
             <h2>My Wallet</h2>
             <div class="wallet-balance-display">
                 <p>Available Balance</p>
-                <h3 id="wallet-balance-text">$50,000.00</h3>
+                <h3 id="wallet-balance-text">$0.00</h3>
             </div>
-            <button class="btn-primary" onclick="alert('Payment gateway integration required for real deposits.')">Deposit Funds</button>
-            <button class="btn-secondary" onclick="alert('Withdrawal requires KYC verification and a backend server.')">Withdraw</button>
-            <h4 style="margin-top: 20px;">Transaction History</h4>
-            <p class="empty-text">No recent transactions.</p>
+            <button class="btn-primary" onclick="alert('Deposit interface coming soon.')">Deposit Funds</button>
+            <button class="btn-secondary" onclick="alert('Withdrawal requires backend integration.')">Withdraw</button>
         </div>
     </div>
 
-    <!-- SIGNALS MODAL -->
     <div id="signals-modal" class="modal">
         <div class="modal-content">
             <span class="close-btn" onclick="closeModal('signals-modal')">&times;</span>
             <h2>AI Forex Signals</h2>
-            <div class="signal-card">
-                <div class="signal-header">
-                    <span>EUR/USD</span>
-                    <span class="badge-buy">BUY</span>
-                </div>
-                <p>Entry: 1.0850 | TP: 1.0880 | SL: 1.0820</p>
-                <p style="font-size: 12px; color: #94a3b8; margin-top: 5px;">Strength: 85% (AI Analysis)</p>
-            </div>
-            <div class="signal-card">
-                <div class="signal-header">
-                    <span>AED/CNY OTC</span>
-                    <span class="badge-sell">SELL</span>
-                </div>
-                <p>Entry: 1.68500 | TP: 1.68200 | SL: 1.68800</p>
-                <p style="font-size: 12px; color: #94a3b8; margin-top: 5px;">Strength: 72% (AI Analysis)</p>
-            </div>
-            <p style="font-size: 11px; color: #ef4444; text-align: center; margin-top: 15px;">*Simulated Signals. Do not use for real financial decisions.</p>
+            <p>Live signals will load here.</p>
         </div>
     </div>
 
-    <!-- MORE / SETTINGS MODAL -->
-    <div id="more-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn" onclick="closeModal('more-modal')">&times;</span>
-            <h2>Settings & More</h2>
-            
-            <div class="settings-list">
-                <div class="settings-item" onclick="alert('Deposit interface opening...')">
-                    <span>💵 Deposit & Finance</span> <span>></span>
-                </div>
-                <div class="settings-item" onclick="alert('Withdrawal interface opening...')">
-                    <span>🏦 Withdrawals</span> <span>></span>
-                </div>
-                <div class="settings-item" onclick="alert('Profile settings require a backend database.')">
-                    <span>👤 Profile & Security</span> <span>></span>
-                </div>
-                <div class="settings-item">
-                    <span>📱 Telegram Alerts</span> 
-                    <input type="checkbox" checked id="telegram-toggle">
-                </div>
-                <div class="settings-item" style="color: #ef4444;" onclick="logout()">
-                    <span>🚪 Log Out</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- AI MODAL -->
     <div id="ai-modal" class="modal">
         <div class="modal-content">
             <span class="close-btn" onclick="closeModal('ai-modal')">&times;</span>
             <h2>AI Trader Engine</h2>
-            <p style="font-size: 12px; color: #94a3b8; margin-bottom: 15px;">Live Market Analysis</p>
-            
-            <div class="settings-list">
-                <div class="settings-item">
-                    <span>RSI (Relative Strength)</span> 
-                    <span id="ai-rsi" style="font-weight: bold; color: white;">Loading...</span>
-                </div>
-                <div class="settings-item">
-                    <span>Trend Detection</span> 
-                    <span id="ai-trend" style="font-weight: bold; color: white;">Loading...</span>
-                </div>
-                <div class="settings-item">
-                    <span>Volatility</span> 
-                    <span id="ai-volatility" style="font-weight: bold; color: white;">Loading...</span>
-                </div>
-                <div class="settings-item" style="background: #1e293b; border: 1px solid #3b82f6;">
-                    <span>AI Suggestion</span> 
-                    <span id="ai-suggestion" style="font-weight: bold; font-size: 18px;">Loading...</span>
-                </div>
-            </div>
-            
-            <p style="font-size: 10px; color: #64748b; text-align: center; margin-top: 15px;">Powered by Pocket AI Engine</p>
+            <p>Live AI analysis will load here.</p>
         </div>
     </div>
 
-    <!-- SOCIAL MODAL -->
     <div id="social-modal" class="modal">
         <div class="modal-content">
             <span class="close-btn" onclick="closeModal('social-modal')">&times;</span>
             <h2>Social Trading</h2>
-            <p>Leaderboard:</p>
-            <ul style="margin-top: 10px; margin-left: 20px; color: #94a3b8;">
-                <li>TraderX - +$450.00 (Demo)</li>
-                <li>ForexKing - +$320.00 (Demo)</li>
-                <li>PocketPro - +$150.00 (Demo)</li>
-            </ul>
+            <p>Leaderboards coming soon.</p>
+        </div>
+    </div>
+
+    <div id="more-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal('more-modal')">&times;</span>
+            <h2>Settings</h2>
+            <div class="settings-list">
+                <div class="settings-item" style="color: #ef4444;" onclick="logout()">
+                    <span>🚪 Log Out</span>
+                </div>
+            </div>
         </div>
     </div>
 
