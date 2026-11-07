@@ -12,7 +12,7 @@ const ctx = canvas.getContext('2d');
 let width, height;
 let prices = [];
 let timestamps = [];
-let maxPoints = 60; 
+let maxPoints = 80; // Number of points on screen
 let currentPrice = 1.72500;
 let isChartRunning = false;
 let chartTags = []; 
@@ -225,8 +225,9 @@ function initChart() {
     resizeCanvas(); prices = []; timestamps = [];
     let now = Date.now();
     
+    // Generate initial jagged data
     for (let i = 0; i < maxPoints; i++) { 
-        let change = (Math.random() - 0.5) * 0.0020; // Higher variance for sharper peaks
+        let change = (Math.random() - 0.5) * 0.0020; 
         currentPrice += change;
         prices.push(currentPrice); 
         timestamps.push(now - ((maxPoints - i) * 1000)); 
@@ -238,8 +239,17 @@ function startChartEngine() {
     
     if (scrollInterval) clearInterval(scrollInterval);
     
+    // THE NATURAL MOVEMENT ENGINE
     scrollInterval = setInterval(() => {
-        let change = (Math.random() - 0.5) * 0.0020; 
+        // Randomly decide if the market is slow, normal, or fast
+        let speedMultiplier = 1.0;
+        let dice = Math.random();
+        if (dice > 0.9) speedMultiplier = 3.0; // 10% chance of a sharp spike
+        else if (dice > 0.7) speedMultiplier = 1.5; // 20% chance of moderate speed
+        else if (dice < 0.2) speedMultiplier = 0.3; // 20% chance of slow movement
+
+        // Generate natural price change
+        let change = (Math.random() - 0.5) * 0.0015 * speedMultiplier; 
         currentPrice += change;
         
         prices.push(currentPrice); 
@@ -253,7 +263,7 @@ function startChartEngine() {
         let priceDisplay = document.getElementById('current-price-display');
         if (priceDisplay) priceDisplay.innerText = currentPrice.toFixed(5);
         document.getElementById('live-price').innerText = `Active: ${state.activeTrades.length} | Price: ${currentPrice.toFixed(5)}`;
-    }, 200);
+    }, 100); // Very fast update (10 times per second) for smooth continuous flow
 
     if (prices.length > 0) requestAnimationFrame(drawChart);
 }
@@ -278,20 +288,20 @@ function drawChart() {
     let adjustedRange = maxPrice - minPrice;
     function getY(price) { return height - ((price - minPrice) / adjustedRange * height); }
 
-    // Gradient
+    // Gradient (Underneath the line)
     let gradient = ctx.createLinearGradient(0, 0, 0, height);
-    gradient.addColorStop(0, 'rgba(96, 165, 250, 0.2)'); 
+    gradient.addColorStop(0, 'rgba(96, 165, 250, 0.3)'); 
     gradient.addColorStop(1, 'rgba(15, 23, 42, 0)');
     ctx.beginPath(); ctx.moveTo(0, height); 
     for (let i = 0; i < prices.length; i++) ctx.lineTo(i * stepX, getY(prices[i]));
     ctx.lineTo(width, height); ctx.fillStyle = gradient; ctx.fill();
 
-    // THE THIN ZIGZAG LINE (Fixed squares)
+    // THIN SHARP ZIGZAG LINE
     ctx.beginPath(); 
     ctx.strokeStyle = '#60a5fa'; 
     ctx.lineWidth = 1.5; 
     ctx.lineJoin = 'miter'; 
-    ctx.miterLimit = 0; // THIS REMOVES THE SQUARES AND ALLOWS SHARP POINTY PEAKS
+    ctx.miterLimit = 0; // Forces sharp points
     
     for (let i = 0; i < prices.length; i++) {
         if (i === 0) ctx.moveTo(i * stepX, getY(prices[i]));
@@ -299,19 +309,35 @@ function drawChart() {
     }
     ctx.stroke();
 
-    // Current Price Label
+    // CURRENT PRICE INDICATOR & 5-DECIMAL SCALE LABELS
     let lastPrice = prices[prices.length - 1];
     let lastX = (prices.length - 1) * stepX;
     let lastY = getY(lastPrice);
 
+    // Dashed line across
     ctx.beginPath(); ctx.strokeStyle = 'rgba(96, 165, 250, 0.4)'; ctx.setLineDash([4, 4]);
     ctx.moveTo(0, lastY); ctx.lineTo(width, lastY); ctx.stroke(); ctx.setLineDash([]); 
+    
+    // Blue dot
     ctx.beginPath(); ctx.fillStyle = '#60a5fa'; ctx.arc(lastX, lastY, 3, 0, Math.PI * 2); ctx.fill();
     
+    // Current price box
     ctx.fillStyle = 'rgba(59, 130, 246, 0.8)'; ctx.fillRect(width - 65, lastY - 10, 65, 20);
     ctx.fillStyle = 'white'; ctx.font = 'bold 11px Arial'; ctx.fillText(lastPrice.toFixed(5), width - 60, lastY + 4);
 
-    // Tags & Timers
+    // 5-Decimal Price Scale (Right side)
+    ctx.fillStyle = '#64748b'; ctx.font = '10px Arial';
+    let steps = 5; // Number of labels on the right
+    for (let i = 0; i <= steps; i++) {
+        let priceLevel = minPrice + (adjustedRange * (i / steps));
+        let yPos = getY(priceLevel);
+        // Don't draw if too close to the current price box to prevent overlap
+        if (Math.abs(yPos - lastY) > 15) {
+            ctx.fillText(priceLevel.toFixed(5), width - 60, yPos);
+        }
+    }
+
+    // Draw Visual Tags (Trades & Timers)
     let now = Date.now();
     chartTags = chartTags.filter(tag => {
         if (tag.type === 'entry') {
@@ -349,7 +375,7 @@ function drawChart() {
         return false;
     });
 
-    // Time Labels
+    // Time Labels (Bottom)
     ctx.fillStyle = '#64748b'; ctx.font = '10px Arial';
     for (let i = 0; i < timestamps.length; i += 15) {
         if (i * stepX > width - 30) continue;
