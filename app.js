@@ -19,9 +19,15 @@ let chartTags = [];
 let ws = null; 
 let scrollInterval = null;
 
-// --- PROFILE MENU TOGGLE ---
+// --- PROFILE & SOCIAL MENU TOGGLES ---
 function toggleProfile() {
     document.getElementById('profile-menu').classList.toggle('open');
+}
+function toggleSocial() {
+    document.getElementById('social-menu').classList.toggle('open');
+}
+function copyTrader(name) {
+    alert(`✅ You are now copying ${name}. Trades will be mirrored to your account.`);
 }
 
 // --- LIVE CLOCK ---
@@ -229,7 +235,6 @@ function startChartEngine() {
     if (ws) ws.close();
     if (scrollInterval) clearInterval(scrollInterval);
     
-    // CONNECT TO REAL LIVE EUR/USD MARKET DATA
     ws = new WebSocket('wss://stream.binance.com:9443/ws/eurusdt@trade');
     
     ws.onmessage = (event) => {
@@ -240,12 +245,10 @@ function startChartEngine() {
             let priceDisplay = document.getElementById('current-price-display');
             if (priceDisplay) priceDisplay.innerText = currentPrice.toFixed(5);
             
-            // Update slider based on real price changes
             updateLiveSlider(currentPrice);
         }
     };
 
-    // Force visual scroll and rendering
     scrollInterval = setInterval(() => {
         prices.push(currentPrice); 
         timestamps.push(Date.now());
@@ -272,9 +275,9 @@ function updateLiveSlider(price) {
         let currentPercent = parseFloat(sliderEl.value) || 9;
         
         if (price > lastSliderPrice) {
-            currentPercent += (Math.random() * 0.5); // Price up, green pushes up
+            currentPercent += (Math.random() * 0.5); 
         } else if (price < lastSliderPrice) {
-            currentPercent -= (Math.random() * 0.5); // Price down, red pushes up
+            currentPercent -= (Math.random() * 0.5); 
         }
         
         if (currentPercent > 95) currentPercent = 95;
