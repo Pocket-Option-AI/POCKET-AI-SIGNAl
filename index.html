@@ -111,9 +111,99 @@
             <div class="nav-item active">📈<br>Trades</div>
             <div class="nav-item" onclick="openModal('signals-modal')">📡<br>Signals</div>
             <div class="nav-item classic-mode" onclick="openModal('ai-modal')">🎛️<br>Classic mode</div>
-            <div class="nav-item" onclick="openModal('chat-modal')">💬<br>Chat</div>
+            <div class="nav-item" onclick="toggleSocial()">👥<br>Social</div>
             <div class="nav-item" onclick="toggleProfile()">⚙️<br>More</div>
         </nav>
+    </div>
+
+    <!-- SOCIAL TRADING PAGE -->
+    <div id="social-menu" class="profile-menu">
+        <div class="profile-header">
+            <div>
+                <span style="font-size: 18px; font-weight: bold; color: white;">Social Trading</span>
+                <p style="font-size: 12px; color: #94a3b8; margin-top: 4px;">Top Real Account Traders</p>
+            </div>
+            <span class="close-btn" onclick="toggleSocial()">&times;</span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 20px;">
+            
+            <!-- Trader 1 -->
+            <div class="trader-card">
+                <div class="trader-info">
+                    <span class="badge gold">🥇</span>
+                    <div>
+                        <div style="font-weight: bold; color: white;">Alex Forex</div>
+                        <div style="font-size: 11px; color: #94a3b8;">Win Rate: 84%</div>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="color: #22c55e; font-weight: bold;">+$2,450</span>
+                    <button class="btn-copy" onclick="copyTrader('Alex Forex')">Copy</button>
+                </div>
+            </div>
+
+            <!-- Trader 2 -->
+            <div class="trader-card">
+                <div class="trader-info">
+                    <span class="badge silver">🥈</span>
+                    <div>
+                        <div style="font-weight: bold; color: white;">Sarah J.</div>
+                        <div style="font-size: 11px; color: #94a3b8;">Win Rate: 79%</div>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="color: #22c55e; font-weight: bold;">+$1,820</span>
+                    <button class="btn-copy" onclick="copyTrader('Sarah J.')">Copy</button>
+                </div>
+            </div>
+
+            <!-- Trader 3 -->
+            <div class="trader-card">
+                <div class="trader-info">
+                    <span class="badge bronze">🥉</span>
+                    <div>
+                        <div style="font-weight: bold; color: white;">Mike T.</div>
+                        <div style="font-size: 11px; color: #94a3b8;">Win Rate: 75%</div>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="color: #22c55e; font-weight: bold;">+$1,150</span>
+                    <button class="btn-copy" onclick="copyTrader('Mike T.')">Copy</button>
+                </div>
+            </div>
+
+            <!-- Trader 4 -->
+            <div class="trader-card">
+                <div class="trader-info">
+                    <span class="badge">4</span>
+                    <div>
+                        <div style="font-weight: bold; color: white;">David K.</div>
+                        <div style="font-size: 11px; color: #94a3b8;">Win Rate: 68%</div>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="color: #22c55e; font-weight: bold;">+$890</span>
+                    <button class="btn-copy" onclick="copyTrader('David K.')">Copy</button>
+                </div>
+            </div>
+
+            <!-- Trader 5 -->
+            <div class="trader-card">
+                <div class="trader-info">
+                    <span class="badge">5</span>
+                    <div>
+                        <div style="font-weight: bold; color: white;">Elena R.</div>
+                        <div style="font-size: 11px; color: #94a3b8;">Win Rate: 62%</div>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="color: #22c55e; font-weight: bold;">+$540</span>
+                    <button class="btn-copy" onclick="copyTrader('Elena R.')">Copy</button>
+                </div>
+            </div>
+
+        </div>
     </div>
 
     <div id="profile-menu" class="profile-menu">
