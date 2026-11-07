@@ -19,35 +19,20 @@ let chartTags = [];
 let ws = null; 
 let scrollInterval = null;
 
-// --- PROFILE & SOCIAL MENU TOGGLES ---
-function toggleProfile() {
-    document.getElementById('profile-menu').classList.toggle('open');
-}
-function toggleSocial() {
-    document.getElementById('social-menu').classList.toggle('open');
-}
-function copyTrader(name) {
-    alert(`✅ You are now copying ${name}. Trades will be mirrored to your account.`);
-}
+// --- MENU TOGGLES ---
+function toggleProfile() { document.getElementById('profile-menu').classList.toggle('open'); }
+function toggleSocial() { document.getElementById('social-menu').classList.toggle('open'); }
+function copyTrader(name) { alert(`✅ You are now copying ${name}. Trades will be mirrored to your account.`); }
 
 // --- LIVE CLOCK ---
 setInterval(() => {
     let clockEl = document.getElementById('live-clock');
-    if (clockEl) {
-        let now = new Date();
-        clockEl.innerText = now.toLocaleTimeString([], { hour12: false });
-    }
+    if (clockEl) { clockEl.innerText = new Date().toLocaleTimeString([], { hour12: false }); }
 }, 1000);
 
 // --- AUTHENTICATION LOGIC ---
-function showRegister() {
-    document.getElementById('login-box').style.display = 'none';
-    document.getElementById('register-box').style.display = 'block';
-}
-function showLogin() {
-    document.getElementById('register-box').style.display = 'none';
-    document.getElementById('login-box').style.display = 'block';
-}
+function showRegister() { document.getElementById('login-box').style.display = 'none'; document.getElementById('register-box').style.display = 'block'; }
+function showLogin() { document.getElementById('register-box').style.display = 'none'; document.getElementById('login-box').style.display = 'block'; }
 
 async function handleRegister() {
     let email = document.getElementById('register-email').value;
@@ -59,10 +44,8 @@ async function handleRegister() {
             body: JSON.stringify({ email, password })
         });
         const data = await res.json();
-        if (data.success) {
-            alert("Registration successful! Please log in.");
-            showLogin();
-        } else { alert("Registration failed: " + data.message); }
+        if (data.success) { alert("Registration successful! Please log in."); showLogin(); } 
+        else { alert("Registration failed: " + data.message); }
     } catch (e) { alert("Network error."); }
 }
 
@@ -153,6 +136,13 @@ async function placeTrade(direction) {
     setTimeout(() => { closeTrade(trade.id); }, expirySeconds * 1000);
 }
 
+// Trade directly from the AI popup
+function tradeFromModal(direction) {
+    closeModal('signals-modal');
+    closeModal('ai-modal');
+    placeTrade(direction);
+}
+
 async function closeTrade(tradeId) {
     let tradeIndex = state.activeTrades.findIndex(t => t.id === tradeId);
     if (tradeIndex === -1) return;
@@ -241,10 +231,8 @@ function startChartEngine() {
         const data = JSON.parse(event.data);
         if (data.p) {
             currentPrice = parseFloat(data.p);
-            
             let priceDisplay = document.getElementById('current-price-display');
             if (priceDisplay) priceDisplay.innerText = currentPrice.toFixed(5);
-            
             updateLiveSlider(currentPrice);
         }
     };
@@ -253,10 +241,7 @@ function startChartEngine() {
         prices.push(currentPrice); 
         timestamps.push(Date.now());
         
-        if (prices.length > maxPoints) { 
-            prices.shift(); 
-            timestamps.shift(); 
-        }
+        if (prices.length > maxPoints) { prices.shift(); timestamps.shift(); }
         
         document.getElementById('live-price').innerText = `Active: ${state.activeTrades.length} | Price: ${currentPrice.toFixed(5)}`;
     }, 500); 
@@ -273,12 +258,8 @@ function updateLiveSlider(price) {
     
     if (sliderEl && greenLabel && redLabel) {
         let currentPercent = parseFloat(sliderEl.value) || 9;
-        
-        if (price > lastSliderPrice) {
-            currentPercent += (Math.random() * 0.5); 
-        } else if (price < lastSliderPrice) {
-            currentPercent -= (Math.random() * 0.5); 
-        }
+        if (price > lastSliderPrice) currentPercent += (Math.random() * 0.5); 
+        else if (price < lastSliderPrice) currentPercent -= (Math.random() * 0.5); 
         
         if (currentPercent > 95) currentPercent = 95;
         if (currentPercent < 5) currentPercent = 5;
@@ -419,20 +400,29 @@ document.getElementById('trade-amount').addEventListener('input', (e) => {
     document.getElementById('potential-profit').innerText = "+$" + (amount * 0.92).toFixed(2);
 });
 
+// --- NEW AI DYNAMIC FETCHING ---
 async function fetchAIStatus() {
     try {
         const res = await fetch('/api/ai-status');
         const data = await res.json();
         if (data.success) {
-            document.getElementById('ai-modal').innerHTML = `
-                <div class="modal-content">
-                    <span class="close-btn" onclick="closeModal('ai-modal')">&times;</span>
-                    <h2>AI Trader Engine</h2>
-                    <p style="margin-top:10px;">RSI: <b>${data.rsi}</b></p>
-                    <p>Trend: <b>${data.trend}</b></p>
-                    <p>Volatility: <b>${data.volatility}</b></p>
-                    <p style="margin-top:10px; font-size: 18px;">Suggestion: <b style="color:${data.suggestion === 'BUY' ? '#22c55e' : data.suggestion === 'SELL' ? '#ef4444' : '#3b82f6'}">${data.suggestion}</b></p>
-                </div>`;
+            let suggColor = data.suggestion === 'BUY' ? '#22c55e' : data.suggestion === 'SELL' ? '#ef4444' : '#3b82f6';
+            let rsiColor = data.rsi > 60 ? '#ef4444' : data.rsi < 40 ? '#22c55e' : '#f59e0b';
+            
+            document.getElementById('ai-content').innerHTML = `
+                <span class="close-btn" onclick="closeModal('ai-modal')">&times;</span>
+                <div class="ai-title">🤖 AI Trader Engine</div>
+                <div class="ai-data-row"><span>RSI (Relative Strength)</span> <b style="color: ${rsiColor}">${data.rsi}</b></div>
+                <div class="ai-data-row"><span>Trend Detection</span> <b>${data.trend}</b></div>
+                <div class="ai-data-row"><span>Volatility</span> <b>${data.volatility}</b></div>
+                <div class="ai-data-row" style="border:none; margin-top: 15px;">
+                    <span style="font-size: 16px;">AI Suggestion</span> 
+                    <b style="color: ${suggColor}; font-size: 20px;">${data.suggestion}</b>
+                </div>
+                <button class="ai-btn-trade" style="background: ${suggColor}; box-shadow: 0 0 10px ${suggColor};" onclick="tradeFromModal('${data.suggestion}')">
+                    Trade ${data.suggestion} Now
+                </button>
+            `;
         }
     } catch (e) { console.error(e); }
 }
@@ -442,18 +432,25 @@ async function fetchLiveSignals() {
         const res = await fetch('/api/live-signal');
         const data = await res.json();
         if (data.success) {
-            document.getElementById('signals-modal').innerHTML = `
-                <div class="modal-content">
-                    <span class="close-btn" onclick="closeModal('signals-modal')">&times;</span>
-                    <h2>AI Forex Signals</h2>
-                    <div class="signal-card" style="margin-top: 15px; border-left: 4px solid #60a5fa; padding-left: 10px;">
-                        <div style="display:flex; justify-content:space-between; font-weight:bold; margin-bottom: 5px;">
-                            <span>${data.pair}</span>
-                            <span style="color:${data.direction === 'BUY' ? '#22c55e' : '#ef4444'}">${data.direction}</span>
-                        </div>
-                        <p>Entry: ${data.entry} | TP: ${data.tp} | SL: ${data.sl}</p>
+            let dirColor = data.direction === 'BUY' ? '#22c55e' : '#ef4444';
+            
+            document.getElementById('signals-content').innerHTML = `
+                <span class="close-btn" onclick="closeModal('signals-modal')">&times;</span>
+                <div class="ai-title">📡 Live AI Signals</div>
+                <div style="background: rgba(15, 23, 42, 0.5); padding: 15px; border-radius: 8px; border-left: 3px solid ${dirColor};">
+                    <div style="display:flex; justify-content:space-between; font-weight:bold; margin-bottom: 10px;">
+                        <span style="font-size: 18px;">${data.pair}</span>
+                        <span style="color:${dirColor}; font-size: 18px;">${data.direction}</span>
                     </div>
-                </div>`;
+                    <div class="ai-data-row"><span>Entry Price</span> <b>${data.entry}</b></div>
+                    <div class="ai-data-row"><span>Take Profit</span> <b style="color:#22c55e;">${data.tp}</b></div>
+                    <div class="ai-data-row"><span>Stop Loss</span> <b style="color:#ef4444;">${data.sl}</b></div>
+                    <div class="ai-data-row" style="border:none;"><span>Strength</span> <b>${data.strength}%</b></div>
+                </div>
+                <button class="ai-btn-trade" style="background: ${dirColor}; box-shadow: 0 0 10px ${dirColor};" onclick="tradeFromModal('${data.direction}')">
+                    Execute ${data.direction}
+                </button>
+            `;
         }
     } catch (e) { console.error(e); }
 }
