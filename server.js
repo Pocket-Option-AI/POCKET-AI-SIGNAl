@@ -42,7 +42,7 @@ app.get('/api/get-balance', (req, res) => {
     res.json({ success: true, demoBalance: serverBalances.demo, realBalance: serverBalances.real });
 });
 
-// 2. Update Balance (When a trade is placed or closed)
+// 2. Update Balance
 app.post('/api/update-balance', (req, res) => {
     const { accountType, amount, tradeData } = req.body;
     
@@ -66,9 +66,9 @@ app.post('/api/update-balance', (req, res) => {
     }
 });
 
-// 3. AI Status Endpoint (For the AI Trader Modal)
+// 3. AI Status Endpoint
 app.get('/api/ai-status', (req, res) => {
-    let mockRSI = Math.floor(Math.random() * 40) + 30; // Random RSI between 30 and 70
+    let mockRSI = Math.floor(Math.random() * 40) + 30;
     let trend = mockRSI > 50 ? "Bullish" : "Bearish";
     let suggestion = mockRSI > 60 ? "BUY" : mockRSI < 40 ? "SELL" : "NEUTRAL";
     
@@ -82,31 +82,40 @@ app.get('/api/ai-status', (req, res) => {
     });
 });
 
+// 4. Live Signals Endpoint
+app.get('/api/live-signal', (req, res) => {
+    let mockPrice = 1.0850 + (Math.random() - 0.5) * 0.005;
+    let rsi = Math.floor(Math.random() * 40) + 30;
+    let signal = rsi > 60 ? "BUY" : rsi < 40 ? "SELL" : "NEUTRAL";
+    
+    res.json({
+        success: true,
+        pair: "EUR/USD",
+        direction: signal,
+        entry: mockPrice.toFixed(5),
+        tp: (mockPrice + 0.0020).toFixed(5),
+        sl: (mockPrice - 0.0010).toFixed(5),
+        strength: rsi,
+        status: "Active"
+    });
+});
+
 // --- AI SIGNAL GENERATOR ENGINE ---
 let priceHistory = [];
 
 function generateAISignal() {
-    // Generate a simulated price between 1.0800 and 1.0900
     let mockPrice = 1.0850 + (Math.random() - 0.5) * 0.005;
     priceHistory.push(mockPrice);
 
-    if (priceHistory.length > 20) {
-        priceHistory.shift();
-    }
+    if (priceHistory.length > 20) priceHistory.shift();
 
     if (priceHistory.length >= 10) {
-        // Calculate Simple Moving Averages (SMA)
         let shortSMA = priceHistory.slice(-5).reduce((a, b) => a + b, 0) / 5;
         let longSMA = priceHistory.slice(-10).reduce((a, b) => a + b, 0) / 10;
 
         let signal = null;
-
-        if (shortSMA > longSMA && (shortSMA - longSMA) > 0.0002) {
-            signal = "BUY";
-        } 
-        else if (shortSMA < longSMA && (longSMA - shortSMA) > 0.0002) {
-            signal = "SELL";
-        }
+        if (shortSMA > longSMA && (shortSMA - longSMA) > 0.0002) signal = "BUY";
+        else if (shortSMA < longSMA && (longSMA - shortSMA) > 0.0002) signal = "SELL";
 
         if (signal) {
             let entryPrice = mockPrice.toFixed(5);
@@ -123,16 +132,13 @@ function generateAISignal() {
             
             console.log(`AI generated a ${signal} signal! Sending to Telegram...`);
             sendTelegramMessage(msg);
-            
             priceHistory = []; 
         }
     }
 }
 
-// Run the AI engine every 30 seconds
 setInterval(generateAISignal, 30000);
 
-// Start the server
 app.listen(PORT, () => {
     console.log(`Backend Server running on port ${PORT}`);
     console.log(`AI Signal Engine is active and scanning the market...`);
