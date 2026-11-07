@@ -17,7 +17,7 @@ let timestamps = [];
 let maxPoints = 100;
 let currentPrice = 1.08500;
 let isChartRunning = false;
-let ws = null; // WebSocket connection
+let ws = null; 
 
 // Control Listeners
 document.getElementById('currency-pair').addEventListener('change', (e) => {
@@ -161,7 +161,6 @@ function initChart() {
     prices = [];
     timestamps = [];
     let now = Date.now();
-    // Pre-fill with the live price so the chart doesn't start empty
     for (let i = 0; i < maxPoints; i++) {
         prices.push(currentPrice);
         timestamps.push(now - ((maxPoints - i) * 1000)); 
@@ -172,10 +171,8 @@ function startChartEngine(speed) {
     initChart();
     isChartRunning = true;
     
-    // Close old connection if it exists
     if (ws) ws.close();
 
-    // Connect to a real live Forex WebSocket (EUR/USDT is highly correlated to EUR/USD)
     ws = new WebSocket('wss://stream.binance.com:9443/ws/eurusdt@trade');
 
     ws.onmessage = (event) => {
@@ -337,3 +334,40 @@ async function saveTradeToServer(accountType, amount, tradeData = null) {
         console.error("Failed to save trade to server:", error);
     }
 }
+
+// --- FETCH AI STATUS ---
+async function fetchAIStatus() {
+    try {
+        const response = await fetch('/api/ai-status');
+        const data = await response.json();
+        
+        if (data.success) {
+            let rsiEl = document.getElementById('ai-rsi');
+            let trendEl = document.getElementById('ai-trend');
+            let volEl = document.getElementById('ai-volatility');
+            let sugEl = document.getElementById('ai-suggestion');
+            
+            if (rsiEl && trendEl && volEl && sugEl) {
+                rsiEl.innerText = data.rsi;
+                trendEl.innerText = data.trend;
+                volEl.innerText = data.volatility;
+                
+                sugEl.innerText = data.suggestion;
+                if (data.suggestion === 'BUY') sugEl.style.color = '#22c55e';
+                else if (data.suggestion === 'SELL') sugEl.style.color = '#ef4444';
+                else sugEl.style.color = '#3b82f6';
+            }
+        }
+    } catch (error) {
+        console.error("Failed to fetch AI status", error);
+    }
+}
+
+// Update the openModal function to fetch AI status when the AI modal is opened
+const originalOpenModal = openModal;
+openModal = function(modalId) {
+    originalOpenModal(modalId);
+    if (modalId === 'ai-modal') {
+        fetchAIStatus(); 
+    }
+};
