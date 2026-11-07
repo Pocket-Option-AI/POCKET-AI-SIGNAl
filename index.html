@@ -15,12 +15,23 @@
                 <h1>POCKET-<span>AI</span>-SIGNAL</h1>
                 <p>Professional Trading Platform</p>
             </div>
-            <div class="auth-box">
-                <h2 id="auth-title">Welcome Back</h2>
+
+            <!-- LOGIN BOX (Default) -->
+            <div id="login-box" class="auth-box">
+                <h2>Log In</h2>
                 <input type="email" id="login-email" placeholder="Email Address">
                 <input type="password" id="login-pass" placeholder="Password">
-                <button id="auth-btn" onclick="handleAuth()" class="btn-primary">Log In</button>
-                <p id="switch-text" class="switch-auth" onclick="toggleAuthMode()">Don't have an account? Register</p>
+                <button onclick="handleLogin()" class="btn-primary">Log In</button>
+                <p class="switch-auth" onclick="showRegister()">Don't have an account? Register</p>
+            </div>
+
+            <!-- REGISTER BOX (Hidden by default) -->
+            <div id="register-box" class="auth-box" style="display: none;">
+                <h2>Create Account</h2>
+                <input type="email" id="register-email" placeholder="Email Address">
+                <input type="password" id="register-pass" placeholder="Password">
+                <button onclick="handleRegister()" class="btn-primary" style="background: #22c55e;">Register</button>
+                <p class="switch-auth" onclick="showLogin()">Already have an account? Log In</p>
             </div>
         </div>
     </div>
