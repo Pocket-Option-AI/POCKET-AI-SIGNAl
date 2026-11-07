@@ -8,7 +8,6 @@
 </head>
 <body class="light-mode" id="app-body">
 
-    <!-- AUTHENTICATION SCREEN (LIGHT MODE) -->
     <div id="auth-screen" class="screen active">
         <div class="auth-container">
             <div class="logo">
@@ -32,10 +31,8 @@
         </div>
     </div>
 
-    <!-- MAIN TRADING DASHBOARD (DARK MODE) -->
     <div id="dashboard-screen" class="screen">
         
-        <!-- HEADER -->
         <header class="top-header">
             <div class="profile-icon" onclick="toggleProfile()">👤</div>
             <div class="account-selector">
@@ -51,11 +48,8 @@
             </div>
         </header>
 
-        <!-- CHART CONTROLS -->
         <div class="chart-controls">
-            <select disabled>
-                <option value="AED/CNY OTC" selected>AED/CNY OTC</option>
-            </select>
+            <select disabled><option>AED/CNY OTC</option></select>
             <select id="chart-timeframe">
                 <option value="5">5 sec</option>
                 <option value="15" selected>15 sec</option>
@@ -63,7 +57,7 @@
             </select>
         </div>
 
-        <!-- CANVAS CHART -->
+        <!-- CHART WRAPPER -->
         <div class="chart-wrapper">
             <div class="chart-header-info">
                 <span id="current-pair-name" style="font-size: 14px; font-weight: bold; color: white;">AED/CNY OTC</span>
@@ -73,9 +67,7 @@
             <canvas id="tradingChart"></canvas>
         </div>
 
-        <!-- TRADING PANEL -->
         <div class="trade-panel">
-            <!-- LIVE SLIDER -->
             <div class="slider-container">
                 <span class="slider-label green">9%</span>
                 <input type="range" min="0" max="100" value="9" class="trade-slider" id="payout-slider">
@@ -109,7 +101,6 @@
             </div>
         </div>
 
-        <!-- HISTORY -->
         <div class="history-panel">
             <h3>TRADING HISTORY</h3>
             <div id="history-list">
@@ -117,7 +108,6 @@
             </div>
         </div>
 
-        <!-- BOTTOM NAV -->
         <nav class="bottom-nav">
             <div class="nav-item active">📈<br>Trades</div>
             <div class="nav-item" onclick="openModal('signals-modal')">📡<br>Signals</div>
@@ -127,7 +117,6 @@
         </nav>
     </div>
 
-    <!-- FULL-SCREEN PROFILE MENU -->
     <div id="profile-menu" class="profile-menu">
         <div class="profile-header">
             <div>
@@ -136,25 +125,19 @@
             </div>
             <span class="close-btn" onclick="toggleProfile()">&times;</span>
         </div>
-        
         <div class="profile-balance">
             <p style="font-size: 12px; color: #94a3b8;">Balance</p>
             <h3 id="profile-balance-text">$0.00</h3>
         </div>
-        
         <div class="profile-buttons">
             <button class="btn-deposit" onclick="openModal('deposit-modal')">Deposit</button>
             <button class="btn-withdraw" onclick="alert('Withdrawal requires KYC.')">Withdraw</button>
         </div>
-
-        <!-- PROMO CARDS -->
         <div class="promo-cards">
             <div class="promo-card promo-1">PROMO</div>
             <div class="promo-card promo-2">POCKET<br>FRIENDS</div>
             <div class="promo-card promo-3">DAILY<br>BONUS</div>
         </div>
-
-        <!-- MENU LIST -->
         <div class="profile-links">
             <div class="menu-item" onclick="alert('Coming Soon')"><span>📈 Your Progress</span> <span>></span></div>
             <div class="menu-item" onclick="alert('Coming Soon')"><span>📊 Today's Stats</span> <span>></span></div>
@@ -172,7 +155,6 @@
         </div>
     </div>
 
-    <!-- DEPOSIT MODAL -->
     <div id="deposit-modal" class="modal">
         <div class="modal-content">
             <span class="close-btn" onclick="closeModal('deposit-modal')">&times;</span>
@@ -188,7 +170,6 @@
         </div>
     </div>
 
-    <!-- CHAT MODAL -->
     <div id="chat-modal" class="modal">
         <div class="modal-content">
             <span class="close-btn" onclick="closeModal('chat-modal')">&times;</span>
@@ -214,21 +195,8 @@
         </div>
     </div>
 
-    <div id="signals-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn" onclick="closeModal('signals-modal')">&times;</span>
-            <h2>AI Forex Signals</h2>
-            <p>Loading live signals...</p>
-        </div>
-    </div>
-
-    <div id="ai-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn" onclick="closeModal('ai-modal')">&times;</span>
-            <h2>AI Trader Engine</h2>
-            <p>Loading analysis...</p>
-        </div>
-    </div>
+    <div id="signals-modal" class="modal"><div class="modal-content"><span class="close-btn" onclick="closeModal('signals-modal')">&times;</span><h2>AI Forex Signals</h2><p>Loading live signals...</p></div></div>
+    <div id="ai-modal" class="modal"><div class="modal-content"><span class="close-btn" onclick="closeModal('ai-modal')">&times;</span><h2>AI Trader Engine</h2><p>Loading analysis...</p></div></div>
 
     <script src="app.js"></script>
 </body>
