@@ -136,7 +136,6 @@ async function placeTrade(direction) {
     setTimeout(() => { closeTrade(trade.id); }, expirySeconds * 1000);
 }
 
-// Trade directly from the AI popup
 function tradeFromModal(direction) {
     closeModal('signals-modal');
     closeModal('ai-modal');
@@ -400,7 +399,6 @@ document.getElementById('trade-amount').addEventListener('input', (e) => {
     document.getElementById('potential-profit').innerText = "+$" + (amount * 0.92).toFixed(2);
 });
 
-// --- NEW AI DYNAMIC FETCHING ---
 async function fetchAIStatus() {
     try {
         const res = await fetch('/api/ai-status');
@@ -453,4 +451,58 @@ async function fetchLiveSignals() {
             `;
         }
     } catch (e) { console.error(e); }
+}
+
+// --- SMART LIVE CHAT LOGIC (TELEGRAM STYLE) ---
+function handleChatEnter(event) {
+    if (event.key === "Enter") { sendChatMessage(); }
+}
+
+function sendChatMessage() {
+    let input = document.getElementById('chat-input');
+    let msg = input.value.trim();
+    if (!msg) return;
+
+    let chatBox = document.getElementById('chat-messages');
+
+    chatBox.innerHTML += `
+        <div style="background: #2b5278; color: white; padding: 10px 15px; border-radius: 12px; border-bottom-right-radius: 0; max-width: 85%; align-self: flex-end; font-size: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.2);">
+            ${msg}
+        </div>
+    `;
+    input.value = '';
+    chatBox.scrollTop = chatBox.scrollHeight;
+
+    let typingId = 'typing-' + Date.now();
+    chatBox.innerHTML += `
+        <div id="${typingId}" style="background: #182533; color: #708499; padding: 10px 15px; border-radius: 12px; border-bottom-left-radius: 0; max-width: 85%; align-self: flex-start; font-size: 13px; font-style: italic;">
+            typing...
+        </div>
+    `;
+    chatBox.scrollTop = chatBox.scrollHeight;
+
+    setTimeout(() => {
+        document.getElementById(typingId).remove();
+
+        let reply = "I have forwarded your message to a human agent. Please wait a moment.";
+        let lowerMsg = msg.toLowerCase();
+
+        if (lowerMsg.includes("hi") || lowerMsg.includes("hello") || lowerMsg.includes("help")) {
+            reply = "Hello! I am your AI assistant. How can I help you today?";
+        } else if (lowerMsg.includes("deposit") || lowerMsg.includes("money") || lowerMsg.includes("fund")) {
+            reply = "You can deposit funds by clicking the green Deposit button in your profile menu.";
+        } else if (lowerMsg.includes("trade") || lowerMsg.includes("win") || lowerMsg.includes("profit")) {
+            reply = "Our AI engine has a 98% win rate! Just place a trade and watch the magic.";
+        } else if (lowerMsg.includes("withdraw")) {
+            reply = "Withdrawals require KYC verification. Please contact support on Telegram for assistance.";
+        }
+
+        chatBox.innerHTML += `
+            <div style="background: #182533; color: white; padding: 10px 15px; border-radius: 12px; border-bottom-left-radius: 0; max-width: 85%; align-self: flex-start; font-size: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.2);">
+                ${reply}
+            </div>
+        `;
+        chatBox.scrollTop = chatBox.scrollHeight;
+
+    }, 1000);
 }
