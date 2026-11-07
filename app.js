@@ -13,9 +13,10 @@ let width, height;
 let prices = [];
 let timestamps = [];
 let maxPoints = 80; 
-let currentPrice = 1.72500;
+let currentPrice = 1.08500;
 let isChartRunning = false;
 let chartTags = []; 
+let ws = null; 
 let scrollInterval = null;
 
 // --- PROFILE MENU TOGGLE ---
@@ -114,7 +115,7 @@ function updateBalanceDisplay() {
 async function placeTrade(direction) {
     let amount = parseFloat(document.getElementById('trade-amount').value);
     let expirySeconds = parseInt(document.getElementById('trade-expiry').value);
-    let pair = 'AED/CNY OTC';
+    let pair = 'EUR/USD';
     
     if (isNaN(amount) || amount <= 0) { alert("Please enter a valid amount."); return; }
     if (amount > state.balances[state.account]) { alert("Insufficient balance."); return; }
@@ -217,8 +218,6 @@ function initChart() {
     let now = Date.now();
     
     for (let i = 0; i < maxPoints; i++) { 
-        let change = (Math.random() - 0.5) * 0.0020; 
-        currentPrice += change;
         prices.push(currentPrice); 
         timestamps.push(now - ((maxPoints - i) * 1000)); 
     }
@@ -227,19 +226,27 @@ function initChart() {
 function startChartEngine() {
     initChart(); isChartRunning = true;
     
+    if (ws) ws.close();
     if (scrollInterval) clearInterval(scrollInterval);
     
-    // THE NATURAL MOVEMENT & LIVE SLIDER ENGINE
-    scrollInterval = setInterval(() => {
-        let speedMultiplier = 1.0;
-        let dice = Math.random();
-        if (dice > 0.95) speedMultiplier = 2.5; 
-        else if (dice > 0.8) speedMultiplier = 1.5; 
-        else if (dice < 0.2) speedMultiplier = 0.4; 
+    // CONNECT TO REAL LIVE EUR/USD MARKET DATA
+    ws = new WebSocket('wss://stream.binance.com:9443/ws/eurusdt@trade');
+    
+    ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.p) {
+            currentPrice = parseFloat(data.p);
+            
+            let priceDisplay = document.getElementById('current-price-display');
+            if (priceDisplay) priceDisplay.innerText = currentPrice.toFixed(5);
+            
+            // Update slider based on real price changes
+            updateLiveSlider(currentPrice);
+        }
+    };
 
-        let change = (Math.random() - 0.5) * 0.0015 * speedMultiplier; 
-        currentPrice += change;
-        
+    // Force visual scroll and rendering
+    scrollInterval = setInterval(() => {
         prices.push(currentPrice); 
         timestamps.push(Date.now());
         
@@ -248,39 +255,38 @@ function startChartEngine() {
             timestamps.shift(); 
         }
         
-        let priceDisplay = document.getElementById('current-price-display');
-        if (priceDisplay) priceDisplay.innerText = currentPrice.toFixed(5);
         document.getElementById('live-price').innerText = `Active: ${state.activeTrades.length} | Price: ${currentPrice.toFixed(5)}`;
-
-        // --- LIVE SLIDER ANIMATION ---
-        // If the price went up, increase green. If it went down, increase red.
-        let sliderEl = document.getElementById('payout-slider');
-        let greenLabel = document.querySelector('.slider-label.green');
-        let redLabel = document.querySelector('.slider-label.red');
-        
-        if (sliderEl && greenLabel && redLabel) {
-            let currentPercent = parseFloat(sliderEl.value) || 9;
-            
-            if (change > 0) {
-                currentPercent += (Math.random() * 1.5); // Push towards green
-            } else {
-                currentPercent -= (Math.random() * 1.5); // Push towards red
-            }
-            
-            // Keep it between 5% and 95%
-            if (currentPercent > 95) currentPercent = 95;
-            if (currentPercent < 5) currentPercent = 5;
-            
-            sliderEl.value = currentPercent;
-            greenLabel.innerText = Math.floor(currentPercent) + "%";
-            redLabel.innerText = Math.floor(100 - currentPercent) + "%";
-            
-            // Update the gradient fill of the slider
-            sliderEl.style.background = `linear-gradient(to right, #22c55e ${currentPercent}%, #ef4444 ${currentPercent}%)`;
-        }
-    }, 500); // Realistic 500ms speed
+    }, 500); 
 
     if (prices.length > 0) requestAnimationFrame(drawChart);
+}
+
+// --- LIVE SLIDER ANIMATION ---
+let lastSliderPrice = currentPrice;
+function updateLiveSlider(price) {
+    let sliderEl = document.getElementById('payout-slider');
+    let greenLabel = document.getElementById('green-percent');
+    let redLabel = document.getElementById('red-percent');
+    
+    if (sliderEl && greenLabel && redLabel) {
+        let currentPercent = parseFloat(sliderEl.value) || 9;
+        
+        if (price > lastSliderPrice) {
+            currentPercent += (Math.random() * 0.5); // Price up, green pushes up
+        } else if (price < lastSliderPrice) {
+            currentPercent -= (Math.random() * 0.5); // Price down, red pushes up
+        }
+        
+        if (currentPercent > 95) currentPercent = 95;
+        if (currentPercent < 5) currentPercent = 5;
+        
+        sliderEl.value = currentPercent;
+        greenLabel.innerText = Math.floor(currentPercent) + "%";
+        redLabel.innerText = Math.floor(100 - currentPercent) + "%";
+        sliderEl.style.background = `linear-gradient(to right, #22c55e ${currentPercent}%, #ef4444 ${currentPercent}%)`;
+        
+        lastSliderPrice = price;
+    }
 }
 
 function drawChart() {
