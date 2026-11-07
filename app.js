@@ -7,8 +7,6 @@ let state = {
     history: []
 };
 
-let isLoginMode = true; 
-
 const canvas = document.getElementById('tradingChart');
 const ctx = canvas.getContext('2d');
 let width, height;
@@ -20,23 +18,52 @@ let isChartRunning = false;
 let ws = null; 
 
 // --- AUTHENTICATION LOGIC ---
-function toggleAuthMode() {
-    isLoginMode = !isLoginMode;
-    document.getElementById('auth-title').innerText = isLoginMode ? "Welcome Back" : "Create Account";
-    document.getElementById('auth-btn').innerText = isLoginMode ? "Log In" : "Register";
-    document.getElementById('switch-text').innerText = isLoginMode ? "Don't have an account? Register" : "Already have an account? Log In";
+function showRegister() {
+    document.getElementById('login-box').style.display = 'none';
+    document.getElementById('register-box').style.display = 'block';
 }
 
-async function handleAuth() {
+function showLogin() {
+    document.getElementById('register-box').style.display = 'none';
+    document.getElementById('login-box').style.display = 'block';
+}
+
+async function handleRegister() {
+    let email = document.getElementById('register-email').value;
+    let password = document.getElementById('register-pass').value;
+
+    if (!email || !password) { alert("Please enter email and password."); return; }
+
+    try {
+        const response = await fetch('/api/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            alert("Registration successful! Please log in.");
+            document.getElementById('register-email').value = '';
+            document.getElementById('register-pass').value = '';
+            showLogin(); // Switch back to login box
+        } else {
+            alert("Registration failed: " + data.message);
+        }
+    } catch (error) {
+        console.error("Auth error:", error);
+        alert("Network error. Please try again.");
+    }
+}
+
+async function handleLogin() {
     let email = document.getElementById('login-email').value;
     let password = document.getElementById('login-pass').value;
 
     if (!email || !password) { alert("Please enter email and password."); return; }
 
-    let endpoint = isLoginMode ? '/api/login' : '/api/register';
-
     try {
-        const response = await fetch(endpoint, {
+        const response = await fetch('/api/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
@@ -52,7 +79,7 @@ async function handleAuth() {
             loadUserData();
             startChartEngine(15);
         } else {
-            alert((isLoginMode ? "Login" : "Registration") + " failed: " + data.message);
+            alert("Login failed: " + data.message);
         }
     } catch (error) {
         console.error("Auth error:", error);
@@ -304,7 +331,6 @@ document.getElementById('trade-amount').addEventListener('input', (e) => {
     document.getElementById('potential-profit').innerText = "+$" + profit.toFixed(2);
 });
 
-// Fetch AI Status
 async function fetchAIStatus() {
     try {
         const response = await fetch('/api/ai-status');
@@ -324,7 +350,6 @@ async function fetchAIStatus() {
     } catch (e) { console.error(e); }
 }
 
-// Fetch Live Signals
 async function fetchLiveSignals() {
     try {
         const response = await fetch('/api/live-signal');
