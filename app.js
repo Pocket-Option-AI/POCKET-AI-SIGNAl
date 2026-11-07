@@ -16,7 +16,33 @@ let maxPoints = 100;
 let currentPrice = 1.08500;
 let isChartRunning = false;
 let ws = null; 
-let chartTags = []; // Holds visual tags (Entry price, profit, timers)
+let chartTags = []; 
+
+// --- LIVE CLOCK ---
+setInterval(() => {
+    let clockEl = document.getElementById('live-clock');
+    if (clockEl) {
+        let now = new Date();
+        clockEl.innerText = now.toLocaleTimeString([], { hour12: false });
+    }
+}, 1000);
+
+// --- LIVE SLIDER ---
+const slider = document.getElementById('payout-slider');
+if (slider) {
+    slider.addEventListener('input', (e) => {
+        let val = e.target.value;
+        e.target.style.background = `linear-gradient(to right, #22c55e ${val}%, #ef4444 ${val}%)`;
+    });
+}
+
+// --- DRAWER CONTROLS ---
+function toggleDrawer() {
+    let drawer = document.getElementById('profile-drawer');
+    if (drawer) {
+        drawer.classList.toggle('open');
+    }
+}
 
 // --- AUTHENTICATION LOGIC ---
 function showRegister() {
@@ -82,9 +108,15 @@ async function loadUserData() {
 }
 
 function updateBalanceDisplay() {
-    state.account = document.getElementById('account-type').value;
+    state.account = 'demo'; // Hardcoded to demo for this view
     let balance = state.balances[state.account] || 0;
-    document.getElementById('display-balance').innerText = "$" + balance.toFixed(2);
+    
+    let headerBal = document.getElementById('display-balance');
+    if (headerBal) headerBal.innerText = "$" + balance.toFixed(2);
+    
+    let drawerBal = document.getElementById('drawer-balance-text');
+    if (drawerBal) drawerBal.innerText = "$" + balance.toFixed(2);
+    
     let walletText = document.getElementById('wallet-balance-text');
     if (walletText) walletText.innerText = "$" + balance.toFixed(2);
 }
@@ -93,10 +125,10 @@ function updateBalanceDisplay() {
 async function placeTrade(direction) {
     let amount = parseFloat(document.getElementById('trade-amount').value);
     let expirySeconds = parseInt(document.getElementById('trade-expiry').value);
-    let pair = document.getElementById('currency-pair').value;
+    let pair = 'EUR/USD';
     
     if (isNaN(amount) || amount <= 0) { alert("Please enter a valid amount."); return; }
-    if (amount > state.balances[state.account]) { alert("Insufficient balance in " + state.account + " account."); return; }
+    if (amount > state.balances[state.account]) { alert("Insufficient balance."); return; }
 
     state.balances[state.account] -= amount;
     updateBalanceDisplay();
@@ -110,12 +142,11 @@ async function placeTrade(direction) {
         expiry: expirySeconds,
         status: 'OPEN',
         result: null,
-        startTime: Date.now() // To track the countdown
+        startTime: Date.now() 
     };
 
     state.activeTrades.push(trade);
     
-    // Add the visual tag to the chart
     chartTags.push({
         type: 'entry',
         tradeId: trade.id,
@@ -144,7 +175,6 @@ async function closeTrade(tradeId) {
     let trade = state.activeTrades[tradeIndex];
     let exitPrice = currentPrice;
     
-    // Remove the timer tag
     chartTags = chartTags.filter(tag => tag.tradeId !== tradeId);
 
     try {
@@ -167,7 +197,6 @@ async function closeTrade(tradeId) {
             let payout = data.payout;
             let isWin = data.result === 'WIN';
 
-            // Update local balance
             state.balances[state.account] += payout;
             updateBalanceDisplay();
 
@@ -178,7 +207,6 @@ async function closeTrade(tradeId) {
             state.activeTrades.splice(tradeIndex, 1);
             renderHistory();
 
-            // Add visual profit tag
             if (isWin) {
                 chartTags.push({
                     type: 'profit',
@@ -199,7 +227,7 @@ function renderHistory() {
     }
     historyDiv.innerHTML = '';
     state.activeTrades.forEach(t => {
-        historyDiv.innerHTML += `<div class="history-item"><span>${t.pair} • ${t.direction} • $${t.amount.toFixed(2)}</span><span style="color:#3b82f6;">Running...</span></div>`;
+        historyDiv.innerHTML += `<div class="history-item"><span>${t.pair} • ${t.direction} • $${t.amount.toFixed(2)}</span><span style="color:#60a5fa;">Running...</span></div>`;
     });
     state.history.forEach(t => {
         let cls = t.result === 'WIN' ? 'win' : 'loss';
@@ -261,13 +289,14 @@ function drawChart() {
 
     // Gradient
     let gradient = ctx.createLinearGradient(0, 0, 0, height);
-    gradient.addColorStop(0, 'rgba(59, 130, 246, 0.4)'); gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
+    gradient.addColorStop(0, 'rgba(96, 165, 250, 0.4)'); // Muted steel blue mist
+    gradient.addColorStop(1, 'rgba(15, 23, 42, 0)');
     ctx.beginPath(); ctx.moveTo(0, height); 
     for (let i = 0; i < prices.length; i++) ctx.lineTo(i * stepX, getY(prices[i]));
     ctx.lineTo(width, height); ctx.fillStyle = gradient; ctx.fill();
 
     // Line
-    ctx.beginPath(); ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.strokeStyle = '#60a5fa'; ctx.lineWidth = 2.5; ctx.lineJoin = 'miter';
     for (let i = 0; i < prices.length; i++) {
         if (i === 0) ctx.moveTo(i * stepX, getY(prices[i]));
         else ctx.lineTo(i * stepX, getY(prices[i]));
@@ -280,13 +309,13 @@ function drawChart() {
     let lastY = getY(lastPrice);
     let decimals = lastPrice > 10 ? 3 : 5;
 
-    ctx.beginPath(); ctx.strokeStyle = 'rgba(59, 130, 246, 0.5)'; ctx.setLineDash([5, 5]);
+    ctx.beginPath(); ctx.strokeStyle = 'rgba(96, 165, 250, 0.5)'; ctx.setLineDash([5, 5]);
     ctx.moveTo(0, lastY); ctx.lineTo(width, lastY); ctx.stroke(); ctx.setLineDash([]); 
-    ctx.beginPath(); ctx.fillStyle = '#3b82f6'; ctx.arc(lastX, lastY, 4, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#3b82f6'; ctx.fillRect(width - 65, lastY - 10, 65, 22);
+    ctx.beginPath(); ctx.fillStyle = '#60a5fa'; ctx.arc(lastX, lastY, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(96, 165, 250, 0.9)'; ctx.fillRect(width - 65, lastY - 10, 65, 22);
     ctx.fillStyle = 'white'; ctx.font = 'bold 12px Arial'; ctx.fillText(lastPrice.toFixed(decimals), width - 60, lastY + 5);
 
-    // Draw Visual Tags (Timers and Entry Prices)
+    // Draw Visual Tags
     let now = Date.now();
     chartTags = chartTags.filter(tag => {
         if (tag.type === 'entry') {
@@ -294,30 +323,25 @@ function drawChart() {
             let tagY = getY(tag.price);
             let tagColor = tag.direction === 'BUY' ? '#22c55e' : '#ef4444';
             
-            // Draw Entry Line
             ctx.beginPath(); ctx.strokeStyle = tagColor; ctx.lineWidth = 1;
             ctx.moveTo(0, tagY); ctx.lineTo(width, tagY); ctx.stroke();
 
-            // Draw Entry Tag (Left side)
             ctx.fillStyle = tagColor;
             let text = `${tag.direction} $${tag.amount}`;
             ctx.fillRect(10, tagY - 10, 80, 20);
             ctx.fillStyle = 'white'; ctx.font = 'bold 11px Arial';
             ctx.fillText(text, 15, tagY + 4);
 
-            // Draw Countdown Timer (Right side)
             if (timeLeft > 0) {
                 ctx.fillStyle = '#1e293b';
                 ctx.fillRect(width - 70, tagY - 10, 60, 20);
-                ctx.fillStyle = '#3b82f6'; ctx.font = 'bold 12px Arial';
+                ctx.fillStyle = '#60a5fa'; ctx.font = 'bold 12px Arial';
                 ctx.fillText(`⏱ ${timeLeft}s`, width - 65, tagY + 4);
             }
-            return timeLeft > 0; // Keep tag until timer ends
+            return timeLeft > 0; 
         }
-        
         if (tag.type === 'profit') {
             let tagY = getY(tag.price);
-            // Show profit tag for 5 seconds
             if (now - tag.time < 5000) {
                 ctx.fillStyle = '#22c55e';
                 ctx.fillRect(width / 2 - 30, tagY - 25, 60, 20);
@@ -381,7 +405,7 @@ async function fetchLiveSignals() {
                 <div class="modal-content">
                     <span class="close-btn" onclick="closeModal('signals-modal')">&times;</span>
                     <h2>AI Forex Signals</h2>
-                    <div class="signal-card" style="margin-top: 15px; border-left: 4px solid #3b82f6; padding-left: 10px;">
+                    <div class="signal-card" style="margin-top: 15px; border-left: 4px solid #60a5fa; padding-left: 10px;">
                         <div style="display:flex; justify-content:space-between; font-weight:bold; margin-bottom: 5px;">
                             <span>${data.pair}</span>
                             <span style="color:${data.direction === 'BUY' ? '#22c55e' : '#ef4444'}">${data.direction}</span>
