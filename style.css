@@ -90,7 +90,7 @@ canvas { width: 100%; height: 100%; display: block; position: relative; z-index:
 .nav-item.active { color: #3b82f6; }
 .nav-item.classic-mode { color: #fff; background: linear-gradient(135deg, #10b981, #ef4444); padding: 5px 15px; border-radius: 8px; box-shadow: 0 0 10px rgba(16, 185, 129, 0.5); }
 
-/* FULL-SCREEN PROFILE MENU */
+/* FULL-SCREEN PROFILE & SOCIAL MENUS */
 .profile-menu { position: fixed; top: 0; right: -100%; width: 100%; height: 100%; background: #0f172a; z-index: 500; transition: right 0.3s ease; padding: 20px; overflow-y: auto; }
 .profile-menu.open { right: 0; }
 .profile-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
@@ -121,7 +121,7 @@ canvas { width: 100%; height: 100%; display: block; position: relative; z-index:
 .btn-copy { background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 12px; cursor: pointer; }
 .btn-copy:active { background: #2563eb; }
 
-/* MODALS */
+/* MODALS & AI GLOWING STYLES */
 .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); backdrop-filter: blur(3px); }
 .modal-content { background-color: #151e32; margin: 15% auto; padding: 20px; border: 1px solid #1e293b; width: 90%; max-width: 400px; border-radius: 12px; color: #e2e8f0; position: relative; }
 .close-btn { color: #94a3b8; position: absolute; top: 10px; right: 15px; font-size: 24px; font-weight: bold; cursor: pointer; }
@@ -131,3 +131,20 @@ canvas { width: 100%; height: 100%; display: block; position: relative; z-index:
 .settings-list { display: flex; flex-direction: column; gap: 10px; }
 .settings-item { display: flex; justify-content: space-between; align-items: center; background: #0b1120; padding: 15px; border-radius: 8px; cursor: pointer; border: 1px solid #1e293b; }
 .settings-item:hover { background: #1e293b; }
+
+/* THE NEW AI GLOWING CARD */
+.ai-card {
+    border: 2px solid #3b82f6;
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.4), inset 0 0 15px rgba(59, 130, 246, 0.1);
+    background: linear-gradient(180deg, #151e32 0%, #0b1120 100%);
+    animation: pulseGlow 2s infinite alternate;
+}
+
+@keyframes pulseGlow {
+    from { box-shadow: 0 0 10px rgba(59, 130, 246, 0.3), inset 0 0 10px rgba(59, 130, 246, 0.1); }
+    to { box-shadow: 0 0 25px rgba(59, 130, 246, 0.7), inset 0 0 20px rgba(59, 130, 246, 0.2); }
+}
+
+.ai-title { color: #60a5fa; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; font-weight: bold; text-align: center; margin-bottom: 15px; }
+.ai-data-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 5px; }
+.ai-btn-trade { width: 100%; padding: 12px; margin-top: 15px; border: none; border-radius: 8px; font-weight: bold; color: white; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; }
