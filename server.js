@@ -86,20 +86,16 @@ app.get('/api/user-data/:userId', (req, res) => {
     });
 });
 
-// Place Trade (Deduct Amount)
 app.post('/api/place-trade', (req, res) => {
     const { userId, accountType, amount, tradeData } = req.body;
     if (!userId) return res.status(401).json({ success: false, message: "Not logged in" });
 
     let balanceCol = accountType === 'demo' ? 'demo_balance' : 'real_balance';
-    
     db.run(`UPDATE users SET ${balanceCol} = ${balanceCol} - ? WHERE id = ?`, [amount, userId], function(err) {
         if (err) return res.status(500).json({ success: false, message: "Trade failed" });
-        
         if (tradeData) {
             db.run(`INSERT INTO trades (user_id, pair, direction, amount, entry_price, expiry) VALUES (?, ?, ?, ?, ?, ?)`, 
                 [userId, tradeData.pair, tradeData.direction, amount, tradeData.entryPrice, tradeData.expiry]);
-            
             let action = tradeData.direction === 'BUY' ? '🟢 BUY' : '🔴 SELL';
             let msg = `<b>🚀 NEW TRADE OPENED</b>\n\nPair: ${tradeData.pair}\nAction: ${action}\nAmount: $${amount}\nAccount: ${accountType.toUpperCase()}`;
             sendTelegramMessage(msg);
@@ -108,42 +104,58 @@ app.post('/api/place-trade', (req, res) => {
     });
 });
 
-// Close Trade (Calculate 98% Win Rate)
 app.post('/api/close-trade', (req, res) => {
-    const { userId, accountType, tradeId, amount, direction, entryPrice, exitPrice } = req.body;
+    const { userId, accountType, tradeId, amount, direction, entryPrice, exitPrice, pair } = req.body;
     if (!userId) return res.status(401).json({ success: false, message: "Not logged in" });
 
     let isWin = false;
-    
-    // THE 98% WIN ENGINE
     let diceRoll = Math.random() * 100;
     if (diceRoll <= 98) {
-        isWin = true; // Forced win 98% of the time
+        isWin = true; // 98% Win Engine
     } else {
-        // The 2% chance it relies on actual chart movement
         if (direction === 'BUY' && exitPrice > entryPrice) isWin = true;
         if (direction === 'SELL' && exitPrice < entryPrice) isWin = true;
     }
 
-    let payout = isWin ? (amount * 1.92) : 0; // 92% payout
+    let payout = isWin ? (amount * 1.92) : 0;
     let resultStr = isWin ? 'WIN' : 'LOSS';
     let balanceCol = accountType === 'demo' ? 'demo_balance' : 'real_balance';
 
-    // Update balance in DB
     db.run(`UPDATE users SET ${balanceCol} = ${balanceCol} + ? WHERE id = ?`, [payout, userId], function(err) {
         if (err) return res.status(500).json({ success: false, message: "Failed to update balance" });
         
-        // Update trade history in DB
         db.run(`UPDATE trades SET result = ? WHERE id = ?`, [resultStr, tradeId]);
 
-        // Telegram Alert if Won
         if (isWin) {
             let profit = (payout - amount).toFixed(2);
-            let msg = `🤖 <b>AI SIGNAL WON!</b>\n\nPair: ${req.body.pair || 'EUR/USD'}\nProfit: <b>+$${profit}</b>\nAccount: ${accountType.toUpperCase()}`;
+            let msg = `🤖 <b>AI SIGNAL WON!</b>\n\nPair: ${pair || 'EUR/USD'}\nProfit: <b>+$${profit}</b>\nAccount: ${accountType.toUpperCase()}`;
             sendTelegramMessage(msg);
         }
-
         res.json({ success: true, result: resultStr, payout: payout });
+    });
+});
+
+// --- AI & SIGNAL ROUTES (The missing pieces) ---
+app.get('/api/ai-status', (req, res) => {
+    let mockRSI = Math.floor(Math.random() * 40) + 30;
+    let trend = mockRSI > 50 ? "Bullish" : "Bearish";
+    let suggestion = mockRSI > 60 ? "BUY" : mockRSI < 40 ? "SELL" : "NEUTRAL";
+    res.json({ success: true, rsi: mockRSI, trend: trend, volatility: "Medium", suggestion: suggestion });
+});
+
+app.get('/api/live-signal', (req, res) => {
+    let mockPrice = 1.0850 + (Math.random() - 0.5) * 0.005;
+    let rsi = Math.floor(Math.random() * 40) + 30;
+    let signal = rsi > 60 ? "BUY" : rsi < 40 ? "SELL" : "NEUTRAL";
+    res.json({
+        success: true,
+        pair: "EUR/USD",
+        direction: signal,
+        entry: mockPrice.toFixed(5),
+        tp: (mockPrice + 0.0020).toFixed(5),
+        sl: (mockPrice - 0.0010).toFixed(5),
+        strength: rsi,
+        status: "Active"
     });
 });
 
