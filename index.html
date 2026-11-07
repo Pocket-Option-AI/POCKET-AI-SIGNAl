@@ -39,7 +39,10 @@
         <header class="top-header">
             <div class="profile-icon" onclick="toggleProfile()">👤</div>
             <div class="account-selector">
-                <span id="current-pair-name" style="font-size: 12px; font-weight: bold; color: #e2e8f0;">AED/CNY OTC</span>
+                <select id="account-type" onchange="updateBalanceDisplay()">
+                    <option value="demo">QT Demo</option>
+                    <option value="real">QT Real</option>
+                </select>
                 <div class="balance" id="display-balance">$0.00</div>
             </div>
             <div style="text-align: right; display: flex; align-items: center; gap: 10px;">
@@ -63,8 +66,8 @@
         <!-- CANVAS CHART -->
         <div class="chart-wrapper">
             <div class="chart-header-info">
-                <span style="font-size: 12px; font-weight: bold; color: white;">1.72500</span>
-                <span style="font-size: 10px; color: #94a3b8;" id="top-chart-time">23:38:27</span>
+                <span id="current-pair-name" style="font-size: 14px; font-weight: bold; color: white;">AED/CNY OTC</span>
+                <span style="font-size: 12px; color: #94a3b8;" id="current-price-display">1.72500</span>
                 <span class="active-badge" id="live-price" style="margin-top: 5px;">Active: 0</span>
             </div>
             <canvas id="tradingChart"></canvas>
@@ -124,7 +127,7 @@
         </nav>
     </div>
 
-    <!-- FULL-SCREEN PROFILE MENU (DRAWER) -->
+    <!-- FULL-SCREEN PROFILE MENU -->
     <div id="profile-menu" class="profile-menu">
         <div class="profile-header">
             <div>
@@ -135,10 +138,8 @@
         </div>
         
         <div class="profile-balance">
-            <div>
-                <p style="font-size: 12px; color: #94a3b8;">Balance</p>
-                <h3 id="profile-balance-text">$0.00</h3>
-            </div>
+            <p style="font-size: 12px; color: #94a3b8;">Balance</p>
+            <h3 id="profile-balance-text">$0.00</h3>
         </div>
         
         <div class="profile-buttons">
