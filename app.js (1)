@@ -1,0 +1,339 @@
+// --- APP STATE & AUTHENTICATION ---
+let state = {
+    account: 'demo', 
+    balances: { demo: 50000, real: 110 },
+    isLoggedIn: false,
+    activeTrades: [],
+    history: []
+};
+
+// --- CHART VARIABLES ---
+const canvas = document.getElementById('tradingChart');
+const ctx = canvas.getContext('2d');
+let width, height;
+
+let prices = [];
+let maxPoints = 150;
+let currentPrice = 1.68500;
+let volatility = 0.00015; 
+let isChartRunning = false;
+let updateInterval = null; // To handle changing timeframes
+
+// Setup event listeners for controls
+document.getElementById('currency-pair').addEventListener('change', (e) => {
+    let pair = e.target.value;
+    document.getElementById('current-pair-name').innerText = pair;
+    
+    // Adjust starting price and volatility based on pair
+    if (pair === 'EUR/USD') { currentPrice = 1.08500; volatility = 0.00010; }
+    else if (pair === 'GBP/USD') { currentPrice = 1.26500; volatility = 0.00012; }
+    else if (pair === 'USD/JPY') { currentPrice = 150.500; volatility = 0.01500; }
+    else if (pair === 'AED/CNY OTC') { currentPrice = 1.68500; volatility = 0.00015; }
+    
+    initChart(); // Restart chart with new data
+});
+
+document.getElementById('chart-timeframe').addEventListener('change', (e) => {
+    let speed = parseInt(e.target.value);
+    startChartEngine(speed);
+});
+
+// --- AUTHENTICATION & UI ---
+function login() {
+    document.getElementById('auth-screen').classList.remove('active');
+    document.getElementById('dashboard-screen').classList.add('active');
+    document.getElementById('app-body').classList.remove('light-mode');
+    updateBalanceDisplay();
+    startChartEngine(15); // Start with 15 sec default
+}
+
+function logout() {
+    location.reload(); 
+}
+
+function updateBalanceDisplay() {
+    state.account = document.getElementById('account-type').value;
+    let balance = state.balances[state.account];
+    document.getElementById('display-balance').innerText = "$" + balance.toFixed(2);
+    
+    let walletText = document.getElementById('wallet-balance-text');
+    if (walletText) {
+        walletText.innerText = "$" + balance.toFixed(2);
+    }
+}
+
+document.getElementById('trade-amount').addEventListener('input', (e) => {
+    let amount = parseFloat(e.target.value) || 0;
+    let profit = amount * 0.92; 
+    document.getElementById('potential-profit').innerText = "+$" + profit.toFixed(2);
+});
+
+// --- TRADING LOGIC ---
+function placeTrade(direction) {
+    let amount = parseFloat(document.getElementById('trade-amount').value);
+    let expirySeconds = parseInt(document.getElementById('trade-expiry').value);
+    let pair = document.getElementById('currency-pair').value;
+    
+    if (isNaN(amount) || amount <= 0) {
+        alert("Please enter a valid amount.");
+        return;
+    }
+    
+    if (amount > state.balances[state.account]) {
+        alert("Insufficient balance in " + state.account + " account.");
+        return;
+    }
+
+    state.balances[state.account] -= amount;
+    updateBalanceDisplay();
+
+    let entryPrice = currentPrice;
+
+    let trade = {
+        id: Date.now(),
+        pair: pair,
+        direction: direction,
+        amount: amount,
+        entryPrice: entryPrice,
+        expiry: expirySeconds,
+        status: 'OPEN',
+        result: null
+    };
+
+    state.activeTrades.push(trade);
+    renderHistory();
+
+    setTimeout(() => {
+        closeTrade(trade.id);
+    }, expirySeconds * 1000);
+}
+
+function closeTrade(tradeId) {
+    let tradeIndex = state.activeTrades.findIndex(t => t.id === tradeId);
+    if (tradeIndex === -1) return;
+    
+    let trade = state.activeTrades[tradeIndex];
+    let exitPrice = currentPrice;
+    
+    let isWin = false;
+    if (trade.direction === 'BUY' && exitPrice > trade.entryPrice) isWin = true;
+    if (trade.direction === 'SELL' && exitPrice < trade.entryPrice) isWin = true;
+
+    let payout = isWin ? trade.amount * 1.92 : 0; 
+    
+    state.balances[state.account] += payout;
+    updateBalanceDisplay();
+
+    trade.status = 'CLOSED';
+    trade.result = isWin ? 'WIN' : 'LOSS';
+    trade.payout = payout;
+    
+    state.history.unshift(trade);
+    state.activeTrades.splice(tradeIndex, 1);
+    
+    renderHistory();
+}
+
+function renderHistory() {
+    let historyDiv = document.getElementById('history-list');
+    if (state.history.length === 0 && state.activeTrades.length === 0) {
+        historyDiv.innerHTML = '<div class="history-item empty">No trades yet. Place a trade to begin.</div>';
+        return;
+    }
+
+    historyDiv.innerHTML = '';
+    
+    state.activeTrades.forEach(t => {
+        historyDiv.innerHTML += `
+            <div class="history-item">
+                <span>${t.pair} • ${t.direction} • $${t.amount.toFixed(2)}</span>
+                <span style="color:#3b82f6;">Running...</span>
+            </div>
+        `;
+    });
+
+    state.history.forEach(t => {
+        let cls = t.result === 'WIN' ? 'win' : 'loss';
+        let color = t.result === 'WIN' ? '#22c55e' : '#ef4444';
+        historyDiv.innerHTML += `
+            <div class="history-item ${cls}">
+                <span>${t.pair} • ${t.direction} • $${t.amount.toFixed(2)}</span>
+                <span style="color:${color}; font-weight:bold;">${t.result} ($${t.payout.toFixed(2)})</span>
+            </div>
+        `;
+    });
+}
+
+// --- HTML5 CANVAS CHART ENGINE ---
+function resizeCanvas() {
+    const rect = canvas.parentElement.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+    width = canvas.width;
+    height = canvas.height;
+}
+window.addEventListener('resize', resizeCanvas);
+
+function initChart() {
+    resizeCanvas();
+    prices = [];
+    for (let i = 0; i < maxPoints; i++) {
+        generateNextPrice();
+        prices.push(currentPrice);
+    }
+}
+
+function generateNextPrice() {
+    let change = (Math.random() - 0.5) * volatility;
+    if (Math.random() > 0.95) change *= 3; // Sharp peaks
+    
+    currentPrice += change;
+    
+    // Soft boundaries so it doesn't drift forever
+    let basePrice = document.getElementById('currency-pair').value === 'EUR/USD' ? 1.08500 : 
+                    document.getElementById('currency-pair').value === 'GBP/USD' ? 1.26500 : 
+                    document.getElementById('currency-pair').value === 'USD/JPY' ? 150.500 : 1.68500;
+                    
+    if (currentPrice > basePrice + (volatility * 20)) currentPrice -= volatility * 2;
+    if (currentPrice < basePrice - (volatility * 20)) currentPrice += volatility * 2;
+    
+    prices.push(currentPrice);
+    if (prices.length > maxPoints) prices.shift();
+}
+
+function startChartEngine(speed) {
+    if (updateInterval) clearInterval(updateInterval); // Clear old timer
+    
+    initChart();
+    isChartRunning = true;
+    
+    // Data generator loop based on selected timeframe
+    updateInterval = setInterval(() => {
+        if (!isChartRunning) return;
+        generateNextPrice();
+        
+        let pair = document.getElementById('currency-pair').value;
+        let decimals = pair === 'USD/JPY' ? 3 : 5;
+        
+        document.getElementById('live-price').innerText = `Active: ${state.activeTrades.length} | Price: ${currentPrice.toFixed(decimals)}`;
+    }, speed * 100); // speed (5, 15, 60) * 100ms
+
+    if (prices.length > 0) requestAnimationFrame(drawChart);
+}
+
+function drawChart(timestamp) {
+    if (!isChartRunning) return;
+    
+    ctx.clearRect(0, 0, width, height);
+    
+    // Grid
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)'; 
+    ctx.lineWidth = 1;
+    let gridSpacing = 40;
+    for (let x = 0; x < width; x += gridSpacing) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke(); }
+    for (let y = 0; y < height; y += gridSpacing) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke(); }
+
+    if (prices.length === 0) {
+        requestAnimationFrame(drawChart);
+        return;
+    }
+
+    let minPrice = Math.min(...prices);
+    let maxPrice = Math.max(...prices);
+    let priceRange = maxPrice - minPrice;
+    if (priceRange === 0) priceRange = 0.001;
+    
+    let padding = priceRange * 0.1;
+    minPrice -= padding;
+    maxPrice += padding;
+    let adjustedRange = maxPrice - minPrice;
+    let stepX = width / (maxPoints - 1);
+    
+    function getY(price) {
+        return height - ((price - minPrice) / adjustedRange * height);
+    }
+
+    // Gradient
+    let gradient = ctx.createLinearGradient(0, 0, 0, height);
+    gradient.addColorStop(0, 'rgba(59, 130, 246, 0.4)'); 
+    gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
+    
+    ctx.beginPath();
+    ctx.moveTo(0, height); 
+    for (let i = 0; i < prices.length; i++) {
+        ctx.lineTo(i * stepX, getY(prices[i]));
+    }
+    ctx.lineTo(width, height); 
+    ctx.fillStyle = gradient;
+    ctx.fill();
+
+    // Zigzag Line
+    ctx.beginPath();
+    ctx.strokeStyle = '#3b82f6'; 
+    ctx.lineWidth = 2;
+    ctx.lineJoin = 'miter'; 
+    for (let i = 0; i < prices.length; i++) {
+        if (i === 0) ctx.moveTo(i * stepX, getY(prices[i]));
+        else ctx.lineTo(i * stepX, getY(prices[i]));
+    }
+    ctx.stroke();
+
+    // Current Price Dot & Label
+    let lastPrice = prices[prices.length - 1];
+    let lastX = (prices.length - 1) * stepX;
+    let lastY = getY(lastPrice);
+    let pair = document.getElementById('currency-pair').value;
+    let decimals = pair === 'USD/JPY' ? 3 : 5;
+
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(59, 130, 246, 0.5)';
+    ctx.setLineDash([5, 5]);
+    ctx.moveTo(0, lastY); ctx.lineTo(width, lastY); ctx.stroke();
+    ctx.setLineDash([]); 
+
+    ctx.beginPath();
+    ctx.fillStyle = '#3b82f6';
+    ctx.arc(lastX, lastY, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#3b82f6';
+    ctx.fillRect(width - 60, lastY - 10, 60, 20);
+    ctx.fillStyle = 'white';
+    ctx.font = '12px Arial';
+    ctx.fillText(lastPrice.toFixed(decimals), width - 55, lastY + 5);
+
+    // Expiry Line Logic
+    if (state.activeTrades.length > 0) {
+        // Find the most recent active trade
+        let activeTrade = state.activeTrades[state.activeTrades.length - 1];
+        let chartSpeed = parseInt(document.getElementById('chart-timeframe').value);
+        
+        // Calculate how many "chart points" until expiry
+        let timeRemaining = activeTrade.expiry; // in seconds
+        let pointsRemaining = timeRemaining / (chartSpeed * 0.1); 
+        
+        // Draw the line extending into the future (right side of chart)
+        let expiryX = width + (pointsRemaining * stepX);
+        
+        // Only draw if it's on screen
+        if (expiryX < width) {
+             ctx.beginPath();
+             ctx.strokeStyle = '#3b82f6';
+             ctx.lineWidth = 1;
+             ctx.moveTo(expiryX, 0);
+             ctx.lineTo(expiryX, height);
+             ctx.stroke();
+             
+             ctx.fillStyle = '#3b82f6';
+             ctx.font = '10px Arial';
+             ctx.fillText("Expiry", expiryX - 20, 15);
+        }
+    }
+
+    requestAnimationFrame(drawChart);
+}
+
+// --- MODAL CONTROL SYSTEM ---
+function openModal(modalId) { document.getElementById(modalId).style.display = "block"; }
+function closeModal(modalId) { document.getElementById(modalId).style.display = "none"; }
+window.onclick = function(event) { if (event.target.classList.contains('modal')) event.target.style.display = "none"; }
