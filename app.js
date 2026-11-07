@@ -32,15 +32,6 @@ setInterval(() => {
     }
 }, 1000);
 
-// --- LIVE SLIDER ---
-const slider = document.getElementById('payout-slider');
-if (slider) {
-    slider.addEventListener('input', (e) => {
-        let val = e.target.value;
-        e.target.style.background = `linear-gradient(to right, #22c55e ${val}%, #ef4444 ${val}%)`;
-    });
-}
-
 // --- AUTHENTICATION LOGIC ---
 function showRegister() {
     document.getElementById('login-box').style.display = 'none';
@@ -238,13 +229,13 @@ function startChartEngine() {
     
     if (scrollInterval) clearInterval(scrollInterval);
     
-    // THE NATURAL MOVEMENT ENGINE (Slower, realistic speed)
+    // THE NATURAL MOVEMENT & LIVE SLIDER ENGINE
     scrollInterval = setInterval(() => {
         let speedMultiplier = 1.0;
         let dice = Math.random();
-        if (dice > 0.95) speedMultiplier = 2.5; // 5% chance of a sharp spike
-        else if (dice > 0.8) speedMultiplier = 1.5; // 15% chance of moderate speed
-        else if (dice < 0.2) speedMultiplier = 0.4; // 20% chance of slow movement
+        if (dice > 0.95) speedMultiplier = 2.5; 
+        else if (dice > 0.8) speedMultiplier = 1.5; 
+        else if (dice < 0.2) speedMultiplier = 0.4; 
 
         let change = (Math.random() - 0.5) * 0.0015 * speedMultiplier; 
         currentPrice += change;
@@ -260,7 +251,34 @@ function startChartEngine() {
         let priceDisplay = document.getElementById('current-price-display');
         if (priceDisplay) priceDisplay.innerText = currentPrice.toFixed(5);
         document.getElementById('live-price').innerText = `Active: ${state.activeTrades.length} | Price: ${currentPrice.toFixed(5)}`;
-    }, 500); // <--- CHANGED TO 500ms FOR REALISTIC POCKET OPTION SPEED
+
+        // --- LIVE SLIDER ANIMATION ---
+        // If the price went up, increase green. If it went down, increase red.
+        let sliderEl = document.getElementById('payout-slider');
+        let greenLabel = document.querySelector('.slider-label.green');
+        let redLabel = document.querySelector('.slider-label.red');
+        
+        if (sliderEl && greenLabel && redLabel) {
+            let currentPercent = parseFloat(sliderEl.value) || 9;
+            
+            if (change > 0) {
+                currentPercent += (Math.random() * 1.5); // Push towards green
+            } else {
+                currentPercent -= (Math.random() * 1.5); // Push towards red
+            }
+            
+            // Keep it between 5% and 95%
+            if (currentPercent > 95) currentPercent = 95;
+            if (currentPercent < 5) currentPercent = 5;
+            
+            sliderEl.value = currentPercent;
+            greenLabel.innerText = Math.floor(currentPercent) + "%";
+            redLabel.innerText = Math.floor(100 - currentPercent) + "%";
+            
+            // Update the gradient fill of the slider
+            sliderEl.style.background = `linear-gradient(to right, #22c55e ${currentPercent}%, #ef4444 ${currentPercent}%)`;
+        }
+    }, 500); // Realistic 500ms speed
 
     if (prices.length > 0) requestAnimationFrame(drawChart);
 }
