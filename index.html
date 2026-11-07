@@ -188,11 +188,29 @@
     <div id="ai-modal" class="modal">
         <div class="modal-content">
             <span class="close-btn" onclick="closeModal('ai-modal')">&times;</span>
-            <h2>AI Trader</h2>
-            <p>RSI: 45 (Neutral)</p>
-            <p>MACD: Bullish Crossover</p>
-            <p>Volatility: High</p>
-            <p style="margin-top: 15px; color: #22c55e;">AI Suggestion: BUY</p>
+            <h2>AI Trader Engine</h2>
+            <p style="font-size: 12px; color: #94a3b8; margin-bottom: 15px;">Live Market Analysis</p>
+            
+            <div class="settings-list">
+                <div class="settings-item">
+                    <span>RSI (Relative Strength)</span> 
+                    <span id="ai-rsi" style="font-weight: bold; color: white;">Loading...</span>
+                </div>
+                <div class="settings-item">
+                    <span>Trend Detection</span> 
+                    <span id="ai-trend" style="font-weight: bold; color: white;">Loading...</span>
+                </div>
+                <div class="settings-item">
+                    <span>Volatility</span> 
+                    <span id="ai-volatility" style="font-weight: bold; color: white;">Loading...</span>
+                </div>
+                <div class="settings-item" style="background: #1e293b; border: 1px solid #3b82f6;">
+                    <span>AI Suggestion</span> 
+                    <span id="ai-suggestion" style="font-weight: bold; font-size: 18px;">Loading...</span>
+                </div>
+            </div>
+            
+            <p style="font-size: 10px; color: #64748b; text-align: center; margin-top: 15px;">Powered by Pocket AI Engine</p>
         </div>
     </div>
 
