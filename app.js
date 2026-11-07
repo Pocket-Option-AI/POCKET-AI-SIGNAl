@@ -40,9 +40,7 @@ function login() {
     document.getElementById('dashboard-screen').classList.add('active');
     document.getElementById('app-body').classList.remove('light-mode');
     updateBalanceDisplay();
-    
     syncBalancesFromServer(); 
-    
     startChartEngine(15); 
 }
 
@@ -115,7 +113,6 @@ function closeTrade(tradeId) {
     state.balances[state.account] += payout;
     
     saveTradeToServer(state.account, payout);
-    
     updateBalanceDisplay();
 
     trade.status = 'CLOSED';
@@ -179,7 +176,6 @@ function startChartEngine(speed) {
         const data = JSON.parse(event.data);
         if (data.p) {
             currentPrice = parseFloat(data.p);
-            
             prices.push(currentPrice);
             timestamps.push(Date.now());
             
@@ -363,11 +359,43 @@ async function fetchAIStatus() {
     }
 }
 
-// Update the openModal function to fetch AI status when the AI modal is opened
+// --- FETCH LIVE SIGNALS ---
+async function fetchLiveSignals() {
+    try {
+        const response = await fetch('/api/live-signal');
+        const data = await response.json();
+        
+        if (data.success) {
+            let signalContainer = document.querySelector('#signals-modal .modal-content');
+            
+            let dynamicHTML = `
+                <span class="close-btn" onclick="closeModal('signals-modal')">&times;</span>
+                <h2>AI Forex Signals</h2>
+                <div class="signal-card">
+                    <div class="signal-header">
+                        <span>${data.pair}</span>
+                        <span class="${data.direction === 'BUY' ? 'badge-buy' : 'badge-sell'}">${data.direction}</span>
+                    </div>
+                    <p>Entry: ${data.entry} | TP: ${data.tp} | SL: ${data.sl}</p>
+                    <p style="font-size: 12px; color: #94a3b8; margin-top: 5px;">Strength: ${data.strength}% (Live AI Analysis)</p>
+                </div>
+                <p style="font-size: 11px; color: #ef4444; text-align: center; margin-top: 15px;">*Live backend signals. Use risk management.</p>
+            `;
+            signalContainer.innerHTML = dynamicHTML;
+        }
+    } catch (error) {
+        console.error("Failed to fetch signals:", error);
+    }
+}
+
+// Update openModal to handle both AI and Signals
 const originalOpenModal = openModal;
 openModal = function(modalId) {
     originalOpenModal(modalId);
     if (modalId === 'ai-modal') {
         fetchAIStatus(); 
+    }
+    if (modalId === 'signals-modal') {
+        fetchLiveSignals();
     }
 };
