@@ -27,6 +27,96 @@ let marketInterval = null;
 let payoutInterval = null;
 let historyTimer = null;
 
+// --- TRADING CENTER TABS (NEW) ---
+function switchTradingTab(tab) {
+    let openBtn = document.getElementById('tab-open');
+    let historyBtn = document.getElementById('tab-history');
+    let openList = document.getElementById('open-positions-list');
+    let historyList = document.getElementById('trade-history-list');
+    
+    if (tab === 'open') {
+        openBtn.style.background = '#3b82f6'; openBtn.style.color = 'white';
+        historyBtn.style.background = '#1e293b'; historyBtn.style.color = '#94a3b8';
+        openList.style.display = 'block';
+        historyList.style.display = 'none';
+        renderOpenPositions();
+    } else {
+        historyBtn.style.background = '#3b82f6'; historyBtn.style.color = 'white';
+        openBtn.style.background = '#1e293b'; openBtn.style.color = '#94a3b8';
+        historyList.style.display = 'block';
+        openList.style.display = 'none';
+        renderTradeHistory();
+    }
+}
+
+function renderOpenPositions() {
+    let container = document.getElementById('open-positions-list');
+    if (state.activeTrades.length === 0) {
+        container.innerHTML = '<p style="color: #64748b; text-align: center; font-size: 13px; padding: 20px;">No open positions.</p>';
+        return;
+    }
+    
+    container.innerHTML = '';
+    state.activeTrades.forEach(t => {
+        let timeLeft = Math.max(0, Math.ceil((t.startTime + (t.expiry * 1000) - Date.now()) / 1000));
+        let currentDiff = currentPrice - t.entryPrice;
+        let isWinning = (t.direction === 'BUY' && currentDiff > 0) || (t.direction === 'SELL' && currentDiff < 0);
+        let plAmount = isWinning ? (t.amount * 0.92) : -t.amount;
+        
+        container.innerHTML += `
+            <div style="background: #0b1120; border-radius: 8px; padding: 12px; margin-bottom: 10px; border-left: 4px solid ${t.direction === 'BUY' ? '#22c55e' : '#ef4444'};">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                    <span style="color: white; font-weight: bold;">${t.pair}</span>
+                    <span style="color: ${t.direction === 'BUY' ? '#22c55e' : '#ef4444'}; font-weight: bold;">${t.direction}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 12px; color: #94a3b8;">
+                    <span>Amount: $${t.amount.toFixed(2)}</span>
+                    <span style="color: #60a5fa;">⏱ ${timeLeft}s</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 12px; margin-top: 5px;">
+                    <span>Entry: ${t.entryPrice.toFixed(5)}</span>
+                    <span style="color: ${plAmount >= 0 ? '#22c55e' : '#ef4444'}; font-weight: bold;">${plAmount >= 0 ? '+' : ''}$${Math.abs(plAmount).toFixed(2)}</span>
+                </div>
+            </div>
+        `;
+    });
+}
+
+async function renderTradeHistory() {
+    let container = document.getElementById('trade-history-list');
+    container.innerHTML = '<p style="color: #64748b; text-align: center; font-size: 13px; padding: 20px;">Loading...</p>';
+    
+    try {
+        const res = await fetch(`/api/trade-history/${state.userId}`);
+        const data = await res.json();
+        if (data.success) {
+            if (data.history.length === 0) {
+                container.innerHTML = '<p style="color: #64748b; text-align: center; font-size: 13px; padding: 20px;">No trade history yet.</p>';
+                return;
+            }
+            container.innerHTML = '';
+            data.history.forEach(t => {
+                let color = t.result === 'WIN' ? '#22c55e' : '#ef4444';
+                container.innerHTML += `
+                    <div style="background: #0b1120; border-radius: 8px; padding: 12px; margin-bottom: 10px; border-left: 4px solid ${color};">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span style="color: white; font-weight: bold;">${t.pair}</span>
+                            <span style="color: ${t.direction === 'BUY' ? '#22c55e' : '#ef4444'}; font-weight: bold;">${t.direction}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 12px; color: #94a3b8;">
+                            <span>Amount: $${t.amount.toFixed(2)}</span>
+                            <span style="color: ${color}; font-weight: bold;">${t.result}</span>
+                        </div>
+                        <div style="font-size: 10px; color: #64748b; margin-top: 5px;">${new Date(t.timestamp).toLocaleString()}</div>
+                    </div>
+                `;
+            });
+        }
+    } catch (e) {
+        container.innerHTML = '<p style="color: #ef4444; text-align: center; font-size: 13px; padding: 20px;">Failed to load history.</p>';
+    }
+}
+
 // --- CONNECT TELEGRAM FUNCTION ---
 function connectTelegram() {
     if (!state.userId) {
@@ -64,6 +154,11 @@ window.onload = function() {
             historyTimer = setInterval(() => {
                 renderHistory();
                 updateActiveTradeBar();
+                if (document.getElementById('trading-modal').style.display === 'block') {
+                    if (document.getElementById('open-positions-list').style.display === 'block') {
+                        renderOpenPositions();
+                    }
+                }
             }, 1000);
         }, 1000);
     }
@@ -370,6 +465,11 @@ async function handleLogin() {
             historyTimer = setInterval(() => {
                 renderHistory();
                 updateActiveTradeBar();
+                if (document.getElementById('trading-modal').style.display === 'block') {
+                    if (document.getElementById('open-positions-list').style.display === 'block') {
+                        renderOpenPositions();
+                    }
+                }
             }, 1000);
         } else { alert("Login failed: " + data.message); }
     } catch (e) { alert("Network error."); }
@@ -755,6 +855,9 @@ function openModal(modalId) {
     if (modalId === 'finance-modal') fetchFinanceLedger();
     if (modalId === 'progress-modal') fetchProgressStats();
     if (modalId === 'activities-modal') fetchActivities();
+    if (modalId === 'trading-modal') {
+        switchTradingTab('open');
+    }
     if (modalId === 'market-modal') {
         fetchMarketData();
         if (marketInterval) clearInterval(marketInterval);
