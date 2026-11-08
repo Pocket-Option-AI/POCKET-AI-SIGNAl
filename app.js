@@ -27,13 +27,12 @@ let marketInterval = null;
 let payoutInterval = null;
 let historyTimer = null;
 
-// --- CONNECT TELEGRAM FUNCTION (NEW) ---
+// --- CONNECT TELEGRAM FUNCTION ---
 function connectTelegram() {
     if (!state.userId) {
         alert("Please log in first.");
         return;
     }
-    // Opens Telegram with your specific User ID
     let telegramUrl = `https://t.me/PocketAIAlertsBot?start=${state.userId}`;
     window.open(telegramUrl, '_blank');
 }
