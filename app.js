@@ -50,9 +50,11 @@ function updateDynamicPayouts() {
         let newPayout = Math.floor(Math.random() * (p.max - p.min + 1)) + p.min;
         let el = document.getElementById(`payout-${p.id}`);
         let hotBadge = document.getElementById(`hot-${p.id}`);
+        let coldBadge = document.getElementById(`cold-${p.id}`);
         
         if (el) {
             el.innerText = newPayout + "%";
+            
             if (hotBadge) {
                 if (newPayout >= 90) {
                     hotBadge.style.display = 'inline-block';
@@ -60,6 +62,15 @@ function updateDynamicPayouts() {
                 } else {
                     hotBadge.style.display = 'none';
                     el.style.color = '#22c55e';
+                }
+            }
+            
+            if (coldBadge) {
+                if (newPayout < 60) {
+                    coldBadge.style.display = 'inline-block';
+                    el.style.color = '#38bdf8';
+                } else {
+                    coldBadge.style.display = 'none';
                 }
             }
         }
@@ -699,7 +710,6 @@ async function fetchLiveSignals() {
         if (data.success) {
             let dirColor = data.direction === 'BUY' ? '#22c55e' : '#ef4444';
             
-            // Fetch history from database
             const feedRes = await fetch('/api/signal-feed');
             const feedData = await feedRes.json();
             
