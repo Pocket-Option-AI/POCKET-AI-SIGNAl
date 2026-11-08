@@ -26,7 +26,6 @@ let tickerInterval = null;
 // --- MENU TOGGLES ---
 function toggleProfile() { 
     document.getElementById('profile-menu').classList.toggle('open'); 
-    // Fetch stats every time the menu opens
     if (document.getElementById('profile-menu').classList.contains('open')) {
         fetchTodayStats();
     }
@@ -37,7 +36,6 @@ function copyTrader(name) { alert(`✅ You are now copying ${name}. Trades will 
 // --- TODAY'S STATS FETCH ---
 async function fetchTodayStats() {
     if (!state.userId) return;
-    
     let accountTypeEl = document.getElementById('account-type');
     let accountType = accountTypeEl ? accountTypeEl.value : 'demo';
     
@@ -47,7 +45,6 @@ async function fetchTodayStats() {
         if (data.success) {
             document.getElementById('stat-trades').innerText = data.totalTrades;
             document.getElementById('stat-winrate').innerText = data.winRate + "%";
-            
             let profitEl = document.getElementById('stat-profit');
             profitEl.innerText = (data.totalProfit >= 0 ? "+$" : "-$") + Math.abs(data.totalProfit);
             profitEl.style.color = data.totalProfit >= 0 ? "#22c55e" : "#ef4444";
@@ -58,11 +55,8 @@ async function fetchTodayStats() {
 // --- ASSET MARKET WATCH MENU ---
 function toggleAssetMenu() {
     let menu = document.getElementById('asset-menu');
-    if (menu.style.bottom === '0px') {
-        menu.style.bottom = '-100%';
-    } else {
-        menu.style.bottom = '0px';
-    }
+    if (menu.style.bottom === '0px') { menu.style.bottom = '-100%'; } 
+    else { menu.style.bottom = '0px'; }
 }
 
 function changeAsset(pair, basePrice, payout) {
@@ -655,4 +649,66 @@ function processWithdrawal() {
     let btn = document.getElementById('withdraw-btn');
     btn.innerText = "Processing..."; btn.style.opacity = "0.7"; btn.style.cursor = "not-allowed";
     setTimeout(() => { btn.innerText = "Processing..."; }, 2000);
+}
+
+// --- NEW: CHANGE PASSWORD & RESET DEMO LOGIC ---
+async function changePassword() {
+    let currentPass = document.getElementById('current-pass').value;
+    let newPass = document.getElementById('new-pass').value;
+    let confirmPass = document.getElementById('confirm-pass').value;
+
+    if (!currentPass || !newPass || !confirmPass) { alert("Please fill all fields."); return; }
+    if (newPass !== confirmPass) { alert("New passwords do not match."); return; }
+    if (newPass.length < 6) { alert("Password must be at least 6 characters."); return; }
+
+    let btn = document.getElementById('change-pass-btn');
+    btn.innerText = "Updating..."; btn.style.opacity = "0.7";
+
+    try {
+        const res = await fetch('/api/change-password', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: state.userId, currentPassword: currentPass, newPassword: newPass })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            alert("✅ Password updated successfully!");
+            document.getElementById('current-pass').value = '';
+            document.getElementById('new-pass').value = '';
+            document.getElementById('confirm-pass').value = '';
+            closeModal('settings-modal');
+        } else {
+            alert("❌ Error: " + data.message);
+        }
+    } catch (e) {
+        alert("Network error.");
+    }
+    btn.innerText = "Update Password"; btn.style.opacity = "1";
+}
+
+async function resetDemoBalance() {
+    if (!confirm("Are you sure you want to reset your Demo balance to $50,000? Your trade history will be kept.")) return;
+
+    let btn = document.getElementById('reset-demo-btn');
+    btn.innerText = "Resetting..."; btn.style.opacity = "0.7";
+
+    try {
+        const res = await fetch('/api/reset-demo', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: state.userId })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            alert("✅ Demo balance reset to $50,000!");
+            state.balances.demo = 50000;
+            updateBalanceDisplay();
+            closeModal('settings-modal');
+        } else {
+            alert("❌ Error: " + data.message);
+        }
+    } catch (e) {
+        alert("Network error.");
+    }
+    btn.innerText = "Reset Demo Balance to $50,000"; btn.style.opacity = "1";
 }
