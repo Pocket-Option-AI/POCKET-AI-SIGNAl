@@ -24,39 +24,6 @@ let candleData = [];
 let tickerInterval = null;
 let marketInterval = null;
 
-// --- TRADER PROFILE LOGIC ---
-function openTraderProfile(name, profit, winRate, totalTrades) {
-    document.getElementById('trader-name').innerText = name;
-    document.getElementById('trader-profit').innerText = "+$" + profit.toLocaleString();
-    document.getElementById('trader-winrate').innerText = winRate + "%";
-    document.getElementById('trader-trades').innerText = totalTrades;
-    
-    let recentTradesDiv = document.getElementById('trader-recent-trades');
-    recentTradesDiv.innerHTML = '';
-    
-    const pairs = ["EUR/USD", "GBP/USD", "USD/JPY", "AED/CNY OTC"];
-    const directions = ["BUY", "SELL"];
-    
-    for (let i = 0; i < 5; i++) {
-        let pair = pairs[Math.floor(Math.random() * pairs.length)];
-        let dir = directions[Math.floor(Math.random() * directions.length)];
-        let amount = (Math.random() * 100 + 10).toFixed(2);
-        
-        recentTradesDiv.innerHTML += `
-            <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #1e293b; font-size: 12px;">
-                <div><span style="color: white;">${pair}</span> <span style="color: #94a3b8;">(${dir})</span></div>
-                <div style="display: flex; gap: 10px;"><span style="color: #94a3b8;">$${amount}</span><span style="color: #22c55e; font-weight: bold;">WIN</span></div>
-            </div>
-        `;
-    }
-    
-    document.getElementById('trader-profile').classList.add('open');
-}
-
-function closeTraderProfile() {
-    document.getElementById('trader-profile').classList.remove('open');
-}
-
 // --- MENU TOGGLES ---
 function toggleProfile() { 
     document.getElementById('profile-menu').classList.toggle('open'); 
