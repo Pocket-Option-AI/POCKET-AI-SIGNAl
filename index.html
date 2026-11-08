@@ -97,7 +97,7 @@
                 </div>
             </div>
             <div class="profit-info">
-                <span>Payout: <strong>+92%</strong></span>
+                <span>Payout: <strong id="main-payout-text">+92%</strong></span>
                 <span>Profit: <strong id="potential-profit">+$0.92</strong></span>
             </div>
             <div class="action-buttons">
@@ -126,10 +126,43 @@
         <div style="width: 40px; height: 4px; background: #334155; border-radius: 2px; margin: 0 auto 15px auto;"></div>
         <h3 style="color: #94a3b8; font-size: 14px; margin-bottom: 15px;">Select Asset</h3>
         <div style="display: flex; flex-direction: column; gap: 10px;">
-            <div class="settings-item" onclick="changeAsset('EUR/USD', 1.08500, 92)" style="border-left: 3px solid #22c55e;"><span>🇪🇺 EUR/USD</span> <span style="color: #22c55e; font-weight: bold;">92%</span></div>
-            <div class="settings-item" onclick="changeAsset('GBP/USD', 1.26500, 90)"><span>🇬🇧 GBP/USD</span> <span style="color: #22c55e; font-weight: bold;">90%</span></div>
-            <div class="settings-item" onclick="changeAsset('USD/JPY', 150.500, 88)"><span>🇺🇸 USD/JPY</span> <span style="color: #22c55e; font-weight: bold;">88%</span></div>
-            <div class="settings-item" onclick="changeAsset('AED/CNY OTC', 1.72500, 92)"><span>🇦🇪 AED/CNY OTC</span> <span style="color: #22c55e; font-weight: bold;">92%</span></div>
+            
+            <!-- EUR/USD -->
+            <div class="settings-item" onclick="changeAsset('EUR/USD', 1.08500, parseInt(document.getElementById('payout-eur').innerText))" style="border-left: 3px solid #22c55e;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span>🇪🇺 EUR/USD</span>
+                    <span id="hot-eur" style="display: none; font-size: 10px; background: #f59e0b; color: white; padding: 2px 4px; border-radius: 4px;">🔥 HOT</span>
+                </div> 
+                <span id="payout-eur" style="color: #22c55e; font-weight: bold;">92%</span>
+            </div>
+
+            <!-- GBP/USD -->
+            <div class="settings-item" onclick="changeAsset('GBP/USD', 1.26500, parseInt(document.getElementById('payout-gbp').innerText))">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span>🇬🇧 GBP/USD</span>
+                    <span id="hot-gbp" style="display: none; font-size: 10px; background: #f59e0b; color: white; padding: 2px 4px; border-radius: 4px;">🔥 HOT</span>
+                </div> 
+                <span id="payout-gbp" style="color: #22c55e; font-weight: bold;">90%</span>
+            </div>
+
+            <!-- USD/JPY -->
+            <div class="settings-item" onclick="changeAsset('USD/JPY', 150.500, parseInt(document.getElementById('payout-jpy').innerText))">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span>🇺🇸 USD/JPY</span>
+                    <span id="hot-jpy" style="display: none; font-size: 10px; background: #f59e0b; color: white; padding: 2px 4px; border-radius: 4px;">🔥 HOT</span>
+                </div> 
+                <span id="payout-jpy" style="color: #22c55e; font-weight: bold;">88%</span>
+            </div>
+
+            <!-- AED/CNY -->
+            <div class="settings-item" onclick="changeAsset('AED/CNY OTC', 1.72500, parseInt(document.getElementById('payout-aed').innerText))">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span>🇦🇪 AED/CNY OTC</span>
+                    <span id="hot-aed" style="display: none; font-size: 10px; background: #f59e0b; color: white; padding: 2px 4px; border-radius: 4px;">🔥 HOT</span>
+                </div> 
+                <span id="payout-aed" style="color: #22c55e; font-weight: bold;">92%</span>
+            </div>
+
         </div>
         <button onclick="toggleAssetMenu()" style="width: 100%; padding: 12px; background: #1e293b; color: white; border: none; border-radius: 8px; font-weight: bold; margin-top: 20px; cursor: pointer;">Cancel</button>
     </div>
