@@ -76,16 +76,6 @@ app.post('/api/login', (req, res) => {
 });
 
 // --- TRADING ROUTES ---
-app.get('/api/user-data/:userId', (req, res) => {
-    const userId = req.params.userId;
-    db.get(`SELECT demo_balance, real_balance FROM users WHERE id = ?`, [userId], (err, user) => {
-        if (err || !user) return res.status(404).json({ success: false, message: "User not found" });
-        db.all(`SELECT * FROM trades WHERE user_id = ? ORDER BY timestamp DESC LIMIT 10`, [userId], (err, trades) => {
-            res.json({ success: true, balances: user, history: trades });
-        });
-    });
-});
-
 app.post('/api/place-trade', (req, res) => {
     const { userId, accountType, amount, tradeData } = req.body;
     if (!userId) return res.status(401).json({ success: false, message: "Not logged in" });
@@ -93,9 +83,11 @@ app.post('/api/place-trade', (req, res) => {
     let balanceCol = accountType === 'demo' ? 'demo_balance' : 'real_balance';
     db.run(`UPDATE users SET ${balanceCol} = ${balanceCol} - ? WHERE id = ?`, [amount, userId], function(err) {
         if (err) return res.status(500).json({ success: false, message: "Trade failed" });
+        
         if (tradeData) {
             db.run(`INSERT INTO trades (user_id, pair, direction, amount, entry_price, expiry) VALUES (?, ?, ?, ?, ?, ?)`, 
                 [userId, tradeData.pair, tradeData.direction, amount, tradeData.entryPrice, tradeData.expiry]);
+            
             let action = tradeData.direction === 'BUY' ? '🟢 BUY' : '🔴 SELL';
             let msg = `<b>🚀 NEW TRADE OPENED</b>\n\nPair: ${tradeData.pair}\nAction: ${action}\nAmount: $${amount}\nAccount: ${accountType.toUpperCase()}`;
             sendTelegramMessage(msg);
@@ -135,7 +127,25 @@ app.post('/api/close-trade', (req, res) => {
     });
 });
 
-// --- AI & SIGNAL ROUTES (The missing pieces) ---
+// --- FETCH TRADE HISTORY (NEW) ---
+app.get('/api/trade-history/:userId', (req, res) => {
+    const userId = req.params.userId;
+    db.all(`SELECT * FROM trades WHERE user_id = ? ORDER BY timestamp DESC LIMIT 15`, [userId], (err, rows) => {
+        if (err) return res.status(500).json({ success: false, message: "Failed to fetch history" });
+        res.json({ success: true, history: rows });
+    });
+});
+
+app.get('/api/user-data/:userId', (req, res) => {
+    const userId = req.params.userId;
+    db.get(`SELECT demo_balance, real_balance FROM users WHERE id = ?`, [userId], (err, user) => {
+        if (err || !user) return res.status(404).json({ success: false, message: "User not found" });
+        db.all(`SELECT * FROM trades WHERE user_id = ? ORDER BY timestamp DESC LIMIT 10`, [userId], (err, trades) => {
+            res.json({ success: true, balances: user, history: trades });
+        });
+    });
+});
+
 app.get('/api/ai-status', (req, res) => {
     let mockRSI = Math.floor(Math.random() * 40) + 30;
     let trend = mockRSI > 50 ? "Bullish" : "Bearish";
