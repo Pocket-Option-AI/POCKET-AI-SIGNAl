@@ -432,7 +432,7 @@ async function placeTrade(direction) {
         state.activeTrades.push(trade);
         chartTags.push({ type: 'entry', tradeId: trade.id, price: currentPrice, direction, amount, expiry: Date.now() + (expirySeconds * 1000) });
         renderHistory();
-        updateActiveTradeBar(); // Update floating bar immediately
+        updateActiveTradeBar();
 
         setTimeout(() => { closeTrade(trade.id); }, expirySeconds * 1000);
 
@@ -468,7 +468,7 @@ async function closeTrade(tradeId) {
             state.history.unshift(trade);
             state.activeTrades.splice(tradeIndex, 1);
             renderHistory();
-            updateActiveTradeBar(); // Update floating bar immediately
+            updateActiveTradeBar();
             if (isWin) {
                 chartTags.push({ type: 'profit', price: exitPrice, amount: payout - trade.amount, time: Date.now() });
             }
@@ -536,8 +536,13 @@ function startChartEngine() {
     initChart(); isChartRunning = true;
     if (ws) ws.close();
     if (scrollInterval) clearInterval(scrollInterval);
+
+    // Check if it's the weekend
+    let day = new Date().getDay();
+    let isWeekend = (day === 0 || day === 6);
+    let useSimulated = (state.currentPair !== 'EUR/USD') || isWeekend;
     
-    if (state.currentPair === 'EUR/USD') {
+    if (!useSimulated) {
         ws = new WebSocket('wss://stream.binance.com:9443/ws/eurusdt@trade');
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
@@ -546,7 +551,7 @@ function startChartEngine() {
                 let priceDisplay = document.getElementById('current-price-display');
                 if (priceDisplay) priceDisplay.innerText = currentPrice.toFixed(5);
                 updateLiveSlider(currentPrice);
-                updateActiveTradeBar(); // Update P/L on every price tick
+                updateActiveTradeBar();
             }
         };
     } else {
@@ -558,7 +563,7 @@ function startChartEngine() {
             let priceDisplay = document.getElementById('current-price-display');
             if (priceDisplay) priceDisplay.innerText = currentPrice.toFixed(decimals);
             updateLiveSlider(currentPrice);
-            updateActiveTradeBar(); // Update P/L on every simulated tick
+            updateActiveTradeBar();
         }, 500);
     }
 
