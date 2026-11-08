@@ -6,7 +6,8 @@ let state = {
     activeTrades: [],
     history: [],
     currentPair: 'EUR/USD',
-    currentPayout: 92
+    currentPayout: 92,
+    displayName: 'BEGINNER'
 };
 
 const canvas = document.getElementById('tradingChart');
@@ -27,7 +28,38 @@ let marketInterval = null;
 let payoutInterval = null;
 let historyTimer = null;
 
-// --- TRADING CENTER TABS (NEW) ---
+// --- PROFILE PAGE LOGIC (NEW) ---
+function openProfilePage() {
+    closeModal('profile-menu'); // Close profile menu if open
+    document.getElementById('profile-input-name').value = state.displayName;
+    document.getElementById('profile-input-email').value = "user@example.com"; // We will populate this on load
+    document.getElementById('profile-input-id').value = "#" + state.userId;
+    openModal('profile-page-modal');
+}
+
+async function saveProfileName() {
+    let newName = document.getElementById('profile-input-name').value.trim();
+    if (!newName) { alert("Please enter a name."); return; }
+
+    try {
+        const res = await fetch('/api/update-profile', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: state.userId, displayName: newName })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            state.displayName = data.displayName;
+            document.getElementById('profile-display-name').innerText = newName.toUpperCase();
+            alert("✅ Profile updated successfully!");
+            closeModal('profile-page-modal');
+        } else {
+            alert("❌ Error: " + data.message);
+        }
+    } catch (e) { alert("Network error."); }
+}
+
+// --- TRADING CENTER TABS ---
 function switchTradingTab(tab) {
     let openBtn = document.getElementById('tab-open');
     let historyBtn = document.getElementById('tab-history');
@@ -449,7 +481,13 @@ async function handleLogin() {
         const data = await res.json();
         if (data.success) {
             state.userId = data.userId;
+            state.displayName = data.displayName || 'BEGINNER';
             localStorage.setItem('pocketUserId', state.userId);
+            localStorage.setItem('pocketUserName', state.displayName);
+            localStorage.setItem('pocketUserEmail', email);
+            
+            document.getElementById('profile-display-name').innerText = state.displayName.toUpperCase();
+            
             document.getElementById('auth-screen').classList.remove('active');
             document.getElementById('dashboard-screen').classList.add('active');
             document.getElementById('app-body').classList.remove('light-mode');
@@ -477,6 +515,8 @@ async function handleLogin() {
 
 function logout() { 
     localStorage.removeItem('pocketUserId');
+    localStorage.removeItem('pocketUserName');
+    localStorage.removeItem('pocketUserEmail');
     state.userId = null; 
     location.reload(); 
 }
@@ -489,6 +529,11 @@ async function loadUserData() {
         if (data.success) {
             state.balances.demo = data.balances.demo_balance;
             state.balances.real = data.balances.real_balance;
+            if (data.displayName) {
+                state.displayName = data.displayName;
+                document.getElementById('profile-display-name').innerText = state.displayName.toUpperCase();
+                localStorage.setItem('pocketUserName', state.displayName);
+            }
             updateBalanceDisplay();
         }
     } catch (e) { console.error(e); }
