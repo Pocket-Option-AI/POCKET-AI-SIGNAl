@@ -241,7 +241,7 @@
         <div class="profile-links">
             <div class="menu-item" onclick="openModal('progress-modal')"><span>📈 Your Progress</span> <span>></span></div>
             <div class="menu-item" onclick="alert('Coming Soon')"><span>📊 Today's Stats</span> <span>></span></div>
-            <div class="menu-item" onclick="alert('Coming Soon')"><span>💼 Trading</span> <span>></span></div>
+            <div class="menu-item" onclick="openModal('trading-modal')"><span>💼 Trading</span> <span>></span></div>
             <div class="menu-item" onclick="openModal('finance-modal')"><span>💰 Finance</span> <span>></span></div>
             <div class="menu-item" onclick="alert('Coming Soon')"><span>👤 Profile</span> <span>></span></div>
             <div class="menu-item" onclick="openModal('market-modal')"><span>🌍 Market</span> <span>></span></div>
@@ -255,7 +255,27 @@
         </div>
     </div>
 
-    <!-- NEW PROMO MODALS -->
+    <!-- NEW TRADING MODAL -->
+    <div id="trading-modal" class="modal">
+        <div class="modal-content" style="padding-bottom: 0;">
+            <span class="close-btn" onclick="closeModal('trading-modal')">&times;</span>
+            <h2>Trading Center</h2>
+            
+            <div style="display: flex; gap: 10px; margin: 15px 0;">
+                <button onclick="switchTradingTab('open')" id="tab-open" style="flex: 1; padding: 10px; background: #3b82f6; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">Open Positions</button>
+                <button onclick="switchTradingTab('history')" id="tab-history" style="flex: 1; padding: 10px; background: #1e293b; color: #94a3b8; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">Trade History</button>
+            </div>
+
+            <div id="open-positions-list" style="max-height: 400px; overflow-y: auto;">
+                <p style="color: #64748b; text-align: center; font-size: 13px;">No open positions.</p>
+            </div>
+
+            <div id="trade-history-list" style="max-height: 400px; overflow-y: auto; display: none;">
+                <p style="color: #64748b; text-align: center; font-size: 13px;">Loading history...</p>
+            </div>
+        </div>
+    </div>
+
     <div id="promo-modal" class="modal">
         <div class="modal-content" style="text-align: center;">
             <span class="close-btn" onclick="closeModal('promo-modal')">&times;</span>
