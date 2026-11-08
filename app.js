@@ -52,6 +52,45 @@ async function fetchTodayStats() {
     } catch (e) { console.error("Failed to load stats:", e); }
 }
 
+// --- PROGRESS STATS FETCH ---
+async function fetchProgressStats() {
+    if (!state.userId) return;
+    let accountTypeEl = document.getElementById('account-type');
+    let accountType = accountTypeEl ? accountTypeEl.value : 'demo';
+    
+    try {
+        const res = await fetch(`/api/progress-stats/${state.userId}/${accountType}`);
+        const data = await res.json();
+        if (data.success) {
+            document.getElementById('prog-best').innerText = "$" + data.bestTrade;
+            document.getElementById('prog-volume').innerText = "$" + data.totalVolume;
+            document.getElementById('prog-streak').innerText = data.maxStreak;
+            document.getElementById('prog-wins').innerText = data.totalWins;
+            
+            let chartDiv = document.getElementById('prog-chart');
+            chartDiv.innerHTML = '';
+            
+            let maxProfit = Math.max(...data.last7Days.map(d => Math.abs(d.profit)), 10);
+            
+            data.last7Days.forEach(day => {
+                let heightPercent = (Math.abs(day.profit) / maxProfit) * 100;
+                if (heightPercent < 5) heightPercent = 5;
+                
+                let color = day.profit >= 0 ? '#22c55e' : '#ef4444';
+                
+                chartDiv.innerHTML += `
+                    <div style="display: flex; flex-direction: column; align-items: center; width: 12%;">
+                        <div style="height: 80px; display: flex; align-items: flex-end; width: 100%; justify-content: center;">
+                            <div style="width: 80%; background: ${color}; height: ${heightPercent}%; border-radius: 2px;"></div>
+                        </div>
+                        <span style="font-size: 9px; color: #64748b; margin-top: 5px;">${day.date}</span>
+                    </div>
+                `;
+            });
+        }
+    } catch (e) { console.error("Failed to load progress:", e); }
+}
+
 // --- FINANCE LEDGER FETCH ---
 async function fetchFinanceLedger() {
     if (!state.userId) return;
@@ -70,8 +109,6 @@ async function fetchFinanceLedger() {
             ledgerList.innerHTML = '';
             data.ledger.forEach(tx => {
                 let isPositive = (tx.type === 'trade' && tx.status === 'WIN') || (tx.type === 'deposit');
-                let isNegative = (tx.type === 'trade' && tx.status === 'LOSS') || (tx.type === 'withdrawal') || (tx.type === 'trade' && tx.status !== 'WIN' && tx.status !== 'LOSS');
-                
                 let color = isPositive ? '#22c55e' : '#ef4444';
                 let sign = isPositive ? '+' : '-';
                 let displayAmount = tx.type === 'trade' ? (tx.status === 'WIN' ? (tx.amount * 1.92).toFixed(2) : tx.amount.toFixed(2)) : tx.amount.toFixed(2);
@@ -576,7 +613,8 @@ function openModal(modalId) {
     if (modalId === 'ai-modal') fetchAIStatus();
     if (modalId === 'signals-modal') fetchLiveSignals();
     if (modalId === 'wallet-modal') renderWalletLedger(); 
-    if (modalId === 'finance-modal') fetchFinanceLedger(); // Fetch finance ledger on open
+    if (modalId === 'finance-modal') fetchFinanceLedger();
+    if (modalId === 'progress-modal') fetchProgressStats();
 }
 function closeModal(modalId) { document.getElementById(modalId).style.display = "none"; }
 window.onclick = function(event) { if (event.target.classList.contains('modal')) event.target.style.display = "none"; }
@@ -667,7 +705,6 @@ function sendChatMessage() {
     }, 1000);
 }
 
-// --- LOG TRANSACTION ---
 async function logTransaction(type, amount, details) {
     try {
         await fetch('/api/log-transaction', {
@@ -688,10 +725,8 @@ function openStripeCheckout(amount) {
 function processStripePayment() {
     let btn = document.getElementById('stripe-pay-btn');
     btn.innerText = "Processing..."; btn.style.opacity = "0.7"; btn.style.cursor = "not-allowed";
-    
     let amount = parseFloat(document.getElementById('stripe-amount-display').innerText.replace('$', ''));
     logTransaction('deposit', amount, 'Stripe Deposit');
-    
     setTimeout(() => { btn.innerText = "Processing..."; }, 2000);
 }
 
@@ -707,13 +742,10 @@ function processWithdrawal() {
 
     let btn = document.getElementById('withdraw-btn');
     btn.innerText = "Processing..."; btn.style.opacity = "0.7"; btn.style.cursor = "not-allowed";
-
     logTransaction('withdrawal', amount, `${network} Withdrawal`);
-    
     setTimeout(() => { btn.innerText = "Processing..."; }, 2000);
 }
 
-// --- CHANGE PASSWORD & RESET DEMO ---
 async function changePassword() {
     let currentPass = document.getElementById('current-pass').value;
     let newPass = document.getElementById('new-pass').value;
@@ -739,12 +771,8 @@ async function changePassword() {
             document.getElementById('new-pass').value = '';
             document.getElementById('confirm-pass').value = '';
             closeModal('settings-modal');
-        } else {
-            alert("❌ Error: " + data.message);
-        }
-    } catch (e) {
-        alert("Network error.");
-    }
+        } else { alert("❌ Error: " + data.message); }
+    } catch (e) { alert("Network error."); }
     btn.innerText = "Update Password"; btn.style.opacity = "1";
 }
 
@@ -766,11 +794,7 @@ async function resetDemoBalance() {
             state.balances.demo = 50000;
             updateBalanceDisplay();
             closeModal('settings-modal');
-        } else {
-            alert("❌ Error: " + data.message);
-        }
-    } catch (e) {
-        alert("Network error.");
-    }
+        } else { alert("❌ Error: " + data.message); }
+    } catch (e) { alert("Network error."); }
     btn.innerText = "Reset Demo Balance to $50,000"; btn.style.opacity = "1";
 }
