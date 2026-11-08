@@ -76,6 +76,36 @@ app.post('/api/login', (req, res) => {
     });
 });
 
+// --- NEW: CHANGE PASSWORD ROUTE ---
+app.post('/api/change-password', (req, res) => {
+    const { userId, currentPassword, newPassword } = req.body;
+    if (!userId || !currentPassword || !newPassword) return res.status(400).json({ success: false, message: "Missing fields" });
+
+    db.get(`SELECT password FROM users WHERE id = ?`, [userId], async (err, user) => {
+        if (err || !user) return res.status(404).json({ success: false, message: "User not found" });
+        
+        const validPassword = await bcrypt.compare(currentPassword, user.password);
+        if (!validPassword) return res.status(400).json({ success: false, message: "Current password is incorrect" });
+
+        const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+        db.run(`UPDATE users SET password = ? WHERE id = ?`, [hashedNewPassword, userId], function(err) {
+            if (err) return res.status(500).json({ success: false, message: "Failed to update password" });
+            res.json({ success: true, message: "Password updated successfully" });
+        });
+    });
+});
+
+// --- NEW: RESET DEMO ROUTE ---
+app.post('/api/reset-demo', (req, res) => {
+    const { userId } = req.body;
+    if (!userId) return res.status(401).json({ success: false, message: "Not logged in" });
+
+    db.run(`UPDATE users SET demo_balance = 50000 WHERE id = ?`, [userId], function(err) {
+        if (err) return res.status(500).json({ success: false, message: "Failed to reset demo" });
+        res.json({ success: true, message: "Demo balance reset to $50,000" });
+    });
+});
+
 // --- TRADING ROUTES ---
 app.post('/api/place-trade', (req, res) => {
     const { userId, accountType, amount, tradeData } = req.body;
@@ -136,7 +166,6 @@ app.get('/api/trade-history/:userId', (req, res) => {
     });
 });
 
-// --- FETCH TODAY'S STATS ---
 app.get('/api/today-stats/:userId/:accountType', (req, res) => {
     const userId = req.params.userId;
     const accountType = req.params.accountType;
