@@ -32,6 +32,7 @@ db.serialize(() => {
         entry_price REAL,
         expiry INTEGER,
         result TEXT,
+        account_type TEXT,
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
 });
@@ -85,8 +86,8 @@ app.post('/api/place-trade', (req, res) => {
         if (err) return res.status(500).json({ success: false, message: "Trade failed" });
         
         if (tradeData) {
-            db.run(`INSERT INTO trades (user_id, pair, direction, amount, entry_price, expiry) VALUES (?, ?, ?, ?, ?, ?)`, 
-                [userId, tradeData.pair, tradeData.direction, amount, tradeData.entryPrice, tradeData.expiry]);
+            db.run(`INSERT INTO trades (user_id, pair, direction, amount, entry_price, expiry, account_type) VALUES (?, ?, ?, ?, ?, ?, ?)`, 
+                [userId, tradeData.pair, tradeData.direction, amount, tradeData.entryPrice, tradeData.expiry, accountType]);
             
             let action = tradeData.direction === 'BUY' ? '🟢 BUY' : '🔴 SELL';
             let msg = `<b>🚀 NEW TRADE OPENED</b>\n\nPair: ${tradeData.pair}\nAction: ${action}\nAmount: $${amount}\nAccount: ${accountType.toUpperCase()}`;
@@ -103,7 +104,7 @@ app.post('/api/close-trade', (req, res) => {
     let isWin = false;
     let diceRoll = Math.random() * 100;
     if (diceRoll <= 98) {
-        isWin = true; // 98% Win Engine
+        isWin = true; 
     } else {
         if (direction === 'BUY' && exitPrice > entryPrice) isWin = true;
         if (direction === 'SELL' && exitPrice < entryPrice) isWin = true;
@@ -127,12 +128,34 @@ app.post('/api/close-trade', (req, res) => {
     });
 });
 
-// --- FETCH TRADE HISTORY (NEW) ---
 app.get('/api/trade-history/:userId', (req, res) => {
     const userId = req.params.userId;
     db.all(`SELECT * FROM trades WHERE user_id = ? ORDER BY timestamp DESC LIMIT 15`, [userId], (err, rows) => {
         if (err) return res.status(500).json({ success: false, message: "Failed to fetch history" });
         res.json({ success: true, history: rows });
+    });
+});
+
+// --- FETCH TODAY'S STATS ---
+app.get('/api/today-stats/:userId/:accountType', (req, res) => {
+    const userId = req.params.userId;
+    const accountType = req.params.accountType;
+    
+    db.all(`SELECT amount, result FROM trades WHERE user_id = ? AND account_type = ? AND DATE(timestamp) = DATE('now')`, 
+    [userId, accountType], (err, rows) => {
+        if (err) return res.status(500).json({ success: false, message: "Failed to fetch stats" });
+        
+        let totalTrades = rows.length;
+        let wins = rows.filter(r => r.result === 'WIN').length;
+        let winRate = totalTrades > 0 ? ((wins / totalTrades) * 100).toFixed(1) : 0;
+        
+        let totalProfit = 0;
+        rows.forEach(r => {
+            if (r.result === 'WIN') totalProfit += (r.amount * 0.92);
+            else if (r.result === 'LOSS') totalProfit -= r.amount;
+        });
+
+        res.json({ success: true, totalTrades, winRate, totalProfit: totalProfit.toFixed(2) });
     });
 });
 
@@ -158,14 +181,9 @@ app.get('/api/live-signal', (req, res) => {
     let rsi = Math.floor(Math.random() * 40) + 30;
     let signal = rsi > 60 ? "BUY" : rsi < 40 ? "SELL" : "NEUTRAL";
     res.json({
-        success: true,
-        pair: "EUR/USD",
-        direction: signal,
-        entry: mockPrice.toFixed(5),
-        tp: (mockPrice + 0.0020).toFixed(5),
-        sl: (mockPrice - 0.0010).toFixed(5),
-        strength: rsi,
-        status: "Active"
+        success: true, pair: "EUR/USD", direction: signal,
+        entry: mockPrice.toFixed(5), tp: (mockPrice + 0.0020).toFixed(5), sl: (mockPrice - 0.0010).toFixed(5),
+        strength: rsi, status: "Active"
     });
 });
 
