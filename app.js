@@ -25,6 +25,7 @@ let candleData = [];
 let tickerInterval = null;
 let marketInterval = null;
 let payoutInterval = null;
+let historyTimer = null; // NEW: Timer for live countdown
 
 // --- MENU TOGGLES ---
 function toggleProfile() { 
@@ -310,6 +311,10 @@ async function handleLogin() {
             
             if (payoutInterval) clearInterval(payoutInterval);
             payoutInterval = setInterval(updateDynamicPayouts, 5000);
+
+            // Start the history timer
+            if (historyTimer) clearInterval(historyTimer);
+            historyTimer = setInterval(renderHistory, 1000);
         } else { alert("Login failed: " + data.message); }
     } catch (e) { alert("Network error."); }
 }
@@ -362,7 +367,6 @@ async function placeTrade(direction) {
     if (isNaN(amount) || amount <= 0) { alert("Please enter a valid amount."); return; }
     if (amount > state.balances[state.account]) { alert("Insufficient balance."); return; }
 
-    // Send trade to server first to check daily limit
     try {
         const res = await fetch('/api/place-trade', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -371,11 +375,10 @@ async function placeTrade(direction) {
         const data = await res.json();
         
         if (!data.success) {
-            alert("❌ " + data.message); // This will show the Daily Limit Reached message
+            alert("❌ " + data.message); 
             return;
         }
 
-        // If successful, proceed with local UI update
         state.balances[state.account] -= amount;
         updateBalanceDisplay();
 
@@ -425,6 +428,7 @@ async function closeTrade(tradeId) {
     } catch (e) { console.error("Failed to close trade:", e); }
 }
 
+// --- UPGRADED HISTORY RENDERER (LIVE COUNTDOWN) ---
 function renderHistory() {
     let historyDiv = document.getElementById('history-list');
     if (state.history.length === 0 && state.activeTrades.length === 0) {
@@ -432,9 +436,19 @@ function renderHistory() {
         return;
     }
     historyDiv.innerHTML = '';
+    
+    // Render active trades with countdown
     state.activeTrades.forEach(t => {
-        historyDiv.innerHTML += `<div class="history-item"><span>${t.pair} • ${t.direction} • $${t.amount.toFixed(2)}</span><span style="color:#60a5fa;">Running...</span></div>`;
+        let timeLeft = Math.max(0, Math.ceil((t.startTime + (t.expiry * 1000) - Date.now()) / 1000));
+        historyDiv.innerHTML += `
+            <div class="history-item" style="border-left: 4px solid #3b82f6;">
+                <span>${t.pair} • ${t.direction} • $${t.amount.toFixed(2)}</span>
+                <span style="color:#60a5fa; font-weight: bold;">⏱ ${timeLeft}s</span>
+            </div>
+        `;
     });
+
+    // Render closed history
     state.history.forEach(t => {
         let cls = t.result === 'WIN' ? 'win' : 'loss';
         let color = t.result === 'WIN' ? '#22c55e' : '#ef4444';
