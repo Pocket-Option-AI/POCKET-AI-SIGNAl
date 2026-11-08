@@ -324,7 +324,10 @@ async function handleLogin() {
             payoutInterval = setInterval(updateDynamicPayouts, 5000);
 
             if (historyTimer) clearInterval(historyTimer);
-            historyTimer = setInterval(renderHistory, 1000);
+            historyTimer = setInterval(() => {
+                renderHistory();
+                updateActiveTradeBar();
+            }, 1000);
         } else { alert("Login failed: " + data.message); }
     } catch (e) { alert("Network error."); }
 }
@@ -369,6 +372,39 @@ function updateBalanceDisplay() {
     if (walletText) walletText.innerText = "$" + balance.toFixed(2);
 }
 
+// --- UPDATE ACTIVE FLOATING BAR ---
+function updateActiveTradeBar() {
+    let bar = document.getElementById('active-trade-bar');
+    if (!bar) return;
+    
+    if (state.activeTrades.length === 0) {
+        bar.style.display = 'none';
+        return;
+    }
+    
+    bar.style.display = 'block';
+    let trade = state.activeTrades[0]; // Show the most recent active trade
+    let timeLeft = Math.max(0, Math.ceil((trade.startTime + (trade.expiry * 1000) - Date.now()) / 1000));
+    
+    document.getElementById('at-pair').innerText = trade.pair;
+    
+    let dirEl = document.getElementById('at-dir');
+    dirEl.innerText = trade.direction;
+    dirEl.style.color = trade.direction === 'BUY' ? '#22c55e' : '#ef4444';
+    
+    document.getElementById('at-timer').innerText = `⏱ ${timeLeft}s`;
+    
+    // Calculate live P/L
+    let currentDiff = currentPrice - trade.entryPrice;
+    let isWinning = (trade.direction === 'BUY' && currentDiff > 0) || (trade.direction === 'SELL' && currentDiff < 0);
+    
+    // Use a simplified P/L estimate for the floating bar
+    let plAmount = isWinning ? (trade.amount * 0.92) : -trade.amount;
+    let plEl = document.getElementById('at-pl');
+    plEl.innerText = (plAmount >= 0 ? "+$" : "-$") + Math.abs(plAmount).toFixed(2);
+    plEl.style.color = plAmount >= 0 ? '#22c55e' : '#ef4444';
+}
+
 // --- TRADING LOGIC ---
 async function placeTrade(direction) {
     let amount = parseFloat(document.getElementById('trade-amount').value);
@@ -396,6 +432,7 @@ async function placeTrade(direction) {
         state.activeTrades.push(trade);
         chartTags.push({ type: 'entry', tradeId: trade.id, price: currentPrice, direction, amount, expiry: Date.now() + (expirySeconds * 1000) });
         renderHistory();
+        updateActiveTradeBar(); // Update floating bar immediately
 
         setTimeout(() => { closeTrade(trade.id); }, expirySeconds * 1000);
 
@@ -431,6 +468,7 @@ async function closeTrade(tradeId) {
             state.history.unshift(trade);
             state.activeTrades.splice(tradeIndex, 1);
             renderHistory();
+            updateActiveTradeBar(); // Update floating bar immediately
             if (isWin) {
                 chartTags.push({ type: 'profit', price: exitPrice, amount: payout - trade.amount, time: Date.now() });
             }
@@ -508,6 +546,7 @@ function startChartEngine() {
                 let priceDisplay = document.getElementById('current-price-display');
                 if (priceDisplay) priceDisplay.innerText = currentPrice.toFixed(5);
                 updateLiveSlider(currentPrice);
+                updateActiveTradeBar(); // Update P/L on every price tick
             }
         };
     } else {
@@ -519,6 +558,7 @@ function startChartEngine() {
             let priceDisplay = document.getElementById('current-price-display');
             if (priceDisplay) priceDisplay.innerText = currentPrice.toFixed(decimals);
             updateLiveSlider(currentPrice);
+            updateActiveTradeBar(); // Update P/L on every simulated tick
         }, 500);
     }
 
