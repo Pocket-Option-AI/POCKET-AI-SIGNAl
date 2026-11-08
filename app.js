@@ -22,6 +22,7 @@ let scrollInterval = null;
 let chartType = 'line'; 
 let candleData = []; 
 let tickerInterval = null;
+let marketInterval = null;
 
 // --- MENU TOGGLES ---
 function toggleProfile() { 
@@ -52,6 +53,44 @@ async function fetchTodayStats() {
     } catch (e) { console.error("Failed to load stats:", e); }
 }
 
+// --- MARKET WATCH FETCH ---
+function fetchMarketData() {
+    let marketData = [
+        { pair: 'EUR/USD', flag: '🇪🇺', price: 1.08500, change: (Math.random() * 2 - 1) },
+        { pair: 'GBP/USD', flag: '🇬🇧', price: 1.26500, change: (Math.random() * 2 - 1) },
+        { pair: 'USD/JPY', flag: '🇺🇸', price: 150.500, change: (Math.random() * 2 - 1) },
+        { pair: 'AED/CNY OTC', flag: '🇦🇪', price: 1.72500, change: (Math.random() * 2 - 1) }
+    ];
+    
+    if (state.currentPair === 'EUR/USD') marketData[0].price = currentPrice;
+    
+    let marketList = document.getElementById('market-list');
+    if (!marketList) return;
+    
+    marketList.innerHTML = '';
+    marketData.forEach(m => {
+        let color = m.change >= 0 ? '#22c55e' : '#ef4444';
+        let sign = m.change >= 0 ? '+' : '';
+        let decimals = m.pair === 'USD/JPY' ? 3 : 5;
+        
+        marketList.innerHTML += `
+            <div class="settings-item" onclick="changeAsset('${m.pair}', ${m.price}, 92)" style="border-bottom: 1px solid #1e293b; padding: 15px 0;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 20px;">${m.flag}</span>
+                    <div>
+                        <div style="font-weight: bold; color: white;">${m.pair}</div>
+                        <div style="font-size: 12px; color: #94a3b8;">${m.price.toFixed(decimals)}</div>
+                    </div>
+                </div>
+                <div style="text-align: right;">
+                    <span style="color: ${color}; font-weight: bold; font-size: 14px;">${sign}${m.change.toFixed(2)}%</span>
+                    <div style="font-size: 10px; color: #64748b;">Today</div>
+                </div>
+            </div>
+        `;
+    });
+}
+
 // --- PROGRESS STATS FETCH ---
 async function fetchProgressStats() {
     if (!state.userId) return;
@@ -75,7 +114,6 @@ async function fetchProgressStats() {
             data.last7Days.forEach(day => {
                 let heightPercent = (Math.abs(day.profit) / maxProfit) * 100;
                 if (heightPercent < 5) heightPercent = 5;
-                
                 let color = day.profit >= 0 ? '#22c55e' : '#ef4444';
                 
                 chartDiv.innerHTML += `
@@ -148,6 +186,7 @@ function changeAsset(pair, basePrice, payout) {
     document.getElementById('current-price-display').innerText = basePrice.toFixed(pair === 'USD/JPY' ? 3 : 5);
     
     toggleAssetMenu();
+    closeModal('market-modal');
     initChart(); 
     
     document.querySelector('.profit-info').innerHTML = `<span>Payout: <strong>+${payout}%</strong></span><span>Profit: <strong id="potential-profit">+$${(1 * (payout/100)).toFixed(2)}</strong></span>`;
@@ -615,8 +654,16 @@ function openModal(modalId) {
     if (modalId === 'wallet-modal') renderWalletLedger(); 
     if (modalId === 'finance-modal') fetchFinanceLedger();
     if (modalId === 'progress-modal') fetchProgressStats();
+    if (modalId === 'market-modal') {
+        fetchMarketData();
+        if (marketInterval) clearInterval(marketInterval);
+        marketInterval = setInterval(fetchMarketData, 2000);
+    }
 }
-function closeModal(modalId) { document.getElementById(modalId).style.display = "none"; }
+function closeModal(modalId) { 
+    document.getElementById(modalId).style.display = "none"; 
+    if (modalId === 'market-modal' && marketInterval) clearInterval(marketInterval);
+}
 window.onclick = function(event) { if (event.target.classList.contains('modal')) event.target.style.display = "none"; }
 
 document.getElementById('trade-amount').addEventListener('input', (e) => {
