@@ -44,13 +44,8 @@ function openTraderProfile(name, profit, winRate, totalTrades) {
         
         recentTradesDiv.innerHTML += `
             <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #1e293b; font-size: 12px;">
-                <div>
-                    <span style="color: white;">${pair}</span> <span style="color: #94a3b8;">(${dir})</span>
-                </div>
-                <div style="display: flex; gap: 10px;">
-                    <span style="color: #94a3b8;">$${amount}</span>
-                    <span style="color: #22c55e; font-weight: bold;">WIN</span>
-                </div>
+                <div><span style="color: white;">${pair}</span> <span style="color: #94a3b8;">(${dir})</span></div>
+                <div style="display: flex; gap: 10px;"><span style="color: #94a3b8;">$${amount}</span><span style="color: #22c55e; font-weight: bold;">WIN</span></div>
             </div>
         `;
     }
@@ -90,13 +85,8 @@ async function fetchActivities() {
             data.activities.forEach(act => {
                 list.innerHTML += `
                     <div style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #1e293b; font-size: 13px;">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <span style="font-size: 16px;">${act.icon}</span>
-                            <span style="color: white;">${act.action}</span>
-                        </div>
-                        <div style="color: #64748b; font-size: 10px; text-align: right;">
-                            ${new Date(act.timestamp).toLocaleString()}
-                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;"><span style="font-size: 16px;">${act.icon}</span><span style="color: white;">${act.action}</span></div>
+                        <div style="color: #64748b; font-size: 10px; text-align: right;">${new Date(act.timestamp).toLocaleString()}</div>
                     </div>
                 `;
             });
@@ -143,17 +133,8 @@ function fetchMarketData() {
         
         marketList.innerHTML += `
             <div class="settings-item" onclick="changeAsset('${m.pair}', ${m.price}, 92)" style="border-bottom: 1px solid #1e293b; padding: 15px 0;">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <span style="font-size: 20px;">${m.flag}</span>
-                    <div>
-                        <div style="font-weight: bold; color: white;">${m.pair}</div>
-                        <div style="font-size: 12px; color: #94a3b8;">${m.price.toFixed(decimals)}</div>
-                    </div>
-                </div>
-                <div style="text-align: right;">
-                    <span style="color: ${color}; font-weight: bold; font-size: 14px;">${sign}${m.change.toFixed(2)}%</span>
-                    <div style="font-size: 10px; color: #64748b;">Today</div>
-                </div>
+                <div style="display: flex; align-items: center; gap: 10px;"><span style="font-size: 20px;">${m.flag}</span><div><div style="font-weight: bold; color: white;">${m.pair}</div><div style="font-size: 12px; color: #94a3b8;">${m.price.toFixed(decimals)}</div></div></div>
+                <div style="text-align: right;"><span style="color: ${color}; font-weight: bold; font-size: 14px;">${sign}${m.change.toFixed(2)}%</span><div style="font-size: 10px; color: #64748b;">Today</div></div>
             </div>
         `;
     });
@@ -185,9 +166,7 @@ async function fetchProgressStats() {
                 
                 chartDiv.innerHTML += `
                     <div style="display: flex; flex-direction: column; align-items: center; width: 12%;">
-                        <div style="height: 80px; display: flex; align-items: flex-end; width: 100%; justify-content: center;">
-                            <div style="width: 80%; background: ${color}; height: ${heightPercent}%; border-radius: 2px;"></div>
-                        </div>
+                        <div style="height: 80px; display: flex; align-items: flex-end; width: 100%; justify-content: center;"><div style="width: 80%; background: ${color}; height: ${heightPercent}%; border-radius: 2px;"></div></div>
                         <span style="font-size: 9px; color: #64748b; margin-top: 5px;">${day.date}</span>
                     </div>
                 `;
@@ -221,13 +200,8 @@ async function fetchFinanceLedger() {
                 
                 ledgerList.innerHTML += `
                     <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #1e293b; font-size: 12px;">
-                        <div>
-                            <span style="color: white; text-transform: capitalize;">${title}</span><br>
-                            <span style="color: #64748b; font-size: 10px;">${new Date(tx.timestamp).toLocaleString()} • ${statusText}</span>
-                        </div>
-                        <div style="color: ${color}; font-weight: bold; text-align: right;">
-                            ${sign}$${displayAmount}
-                        </div>
+                        <div><span style="color: white; text-transform: capitalize;">${title}</span><br><span style="color: #64748b; font-size: 10px;">${new Date(tx.timestamp).toLocaleString()} • ${statusText}</span></div>
+                        <div style="color: ${color}; font-weight: bold; text-align: right;">${sign}$${displayAmount}</div>
                     </div>
                 `;
             });
@@ -469,14 +443,7 @@ function renderWalletLedger() {
         let color = isWin ? '#22c55e' : '#ef4444';
         let sign = isWin ? '+' : '-';
         let amount = isWin ? (t.amount * 0.92).toFixed(2) : t.amount.toFixed(2);
-        ledgerDiv.innerHTML += `
-            <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #1e293b; font-size: 12px;">
-                <div>
-                    <span style="color: white;">${t.pair} ${t.direction}</span><br>
-                    <span style="color: #64748b; font-size: 10px;">${new Date(t.timestamp).toLocaleString()}</span>
-                </div>
-                <div style="color: ${color}; font-weight: bold; text-align: right;">${sign}$${amount}</div>
-            </div>`;
+        ledgerDiv.innerHTML += `<div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #1e293b; font-size: 12px;"><div><span style="color: white;">${t.pair} ${t.direction}</span><br><span style="color: #64748b; font-size: 10px;">${new Date(t.timestamp).toLocaleString()}</span></div><div style="color: ${color}; font-weight: bold; text-align: right;">${sign}$${amount}</div></div>`;
     });
 }
 
@@ -696,13 +663,8 @@ async function fetchAIStatus() {
                 <div class="ai-data-row"><span>RSI (Relative Strength)</span> <b style="color: ${rsiColor}">${data.rsi}</b></div>
                 <div class="ai-data-row"><span>Trend Detection</span> <b>${data.trend}</b></div>
                 <div class="ai-data-row"><span>Volatility</span> <b>${data.volatility}</b></div>
-                <div class="ai-data-row" style="border:none; margin-top: 15px;">
-                    <span style="font-size: 16px;">AI Suggestion</span> 
-                    <b style="color: ${suggColor}; font-size: 20px;">${data.suggestion}</b>
-                </div>
-                <button class="ai-btn-trade" style="background: ${suggColor}; box-shadow: 0 0 10px ${suggColor};" onclick="tradeFromModal('${data.suggestion}')">
-                    Trade ${data.suggestion} Now
-                </button>
+                <div class="ai-data-row" style="border:none; margin-top: 15px;"><span style="font-size: 16px;">AI Suggestion</span> <b style="color: ${suggColor}; font-size: 20px;">${data.suggestion}</b></div>
+                <button class="ai-btn-trade" style="background: ${suggColor}; box-shadow: 0 0 10px ${suggColor};" onclick="tradeFromModal('${data.suggestion}')">Trade ${data.suggestion} Now</button>
             `;
         }
     } catch (e) { console.error(e); }
@@ -718,18 +680,13 @@ async function fetchLiveSignals() {
                 <span class="close-btn" onclick="closeModal('signals-modal')">&times;</span>
                 <div class="ai-title">📡 Live AI Signals</div>
                 <div style="background: rgba(15, 23, 42, 0.5); padding: 15px; border-radius: 8px; border-left: 3px solid ${dirColor};">
-                    <div style="display:flex; justify-content:space-between; font-weight:bold; margin-bottom: 10px;">
-                        <span style="font-size: 18px;">${data.pair}</span>
-                        <span style="color:${dirColor}; font-size: 18px;">${data.direction}</span>
-                    </div>
+                    <div style="display:flex; justify-content:space-between; font-weight:bold; margin-bottom: 10px;"><span style="font-size: 18px;">${data.pair}</span><span style="color:${dirColor}; font-size: 18px;">${data.direction}</span></div>
                     <div class="ai-data-row"><span>Entry Price</span> <b>${data.entry}</b></div>
                     <div class="ai-data-row"><span>Take Profit</span> <b style="color:#22c55e;">${data.tp}</b></div>
                     <div class="ai-data-row"><span>Stop Loss</span> <b style="color:#ef4444;">${data.sl}</b></div>
                     <div class="ai-data-row" style="border:none;"><span>Strength</span> <b>${data.strength}%</b></div>
                 </div>
-                <button class="ai-btn-trade" style="background: ${dirColor}; box-shadow: 0 0 10px ${dirColor};" onclick="tradeFromModal('${data.direction}')">
-                    Execute ${data.direction}
-                </button>
+                <button class="ai-btn-trade" style="background: ${dirColor}; box-shadow: 0 0 10px ${dirColor};" onclick="tradeFromModal('${data.direction}')">Execute ${data.direction}</button>
             `;
         }
     } catch (e) { console.error(e); }
