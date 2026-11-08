@@ -25,7 +25,7 @@ let candleData = [];
 let tickerInterval = null;
 let marketInterval = null;
 let payoutInterval = null;
-let historyTimer = null; // NEW: Timer for live countdown
+let historyTimer = null;
 
 // --- MENU TOGGLES ---
 function toggleProfile() { 
@@ -312,7 +312,6 @@ async function handleLogin() {
             if (payoutInterval) clearInterval(payoutInterval);
             payoutInterval = setInterval(updateDynamicPayouts, 5000);
 
-            // Start the history timer
             if (historyTimer) clearInterval(historyTimer);
             historyTimer = setInterval(renderHistory, 1000);
         } else { alert("Login failed: " + data.message); }
@@ -428,7 +427,6 @@ async function closeTrade(tradeId) {
     } catch (e) { console.error("Failed to close trade:", e); }
 }
 
-// --- UPGRADED HISTORY RENDERER (LIVE COUNTDOWN) ---
 function renderHistory() {
     let historyDiv = document.getElementById('history-list');
     if (state.history.length === 0 && state.activeTrades.length === 0) {
@@ -437,7 +435,6 @@ function renderHistory() {
     }
     historyDiv.innerHTML = '';
     
-    // Render active trades with countdown
     state.activeTrades.forEach(t => {
         let timeLeft = Math.max(0, Math.ceil((t.startTime + (t.expiry * 1000) - Date.now()) / 1000));
         historyDiv.innerHTML += `
@@ -448,7 +445,6 @@ function renderHistory() {
         `;
     });
 
-    // Render closed history
     state.history.forEach(t => {
         let cls = t.result === 'WIN' ? 'win' : 'loss';
         let color = t.result === 'WIN' ? '#22c55e' : '#ef4444';
@@ -702,17 +698,53 @@ async function fetchLiveSignals() {
         const data = await res.json();
         if (data.success) {
             let dirColor = data.direction === 'BUY' ? '#22c55e' : '#ef4444';
+            
+            // Fetch history from database
+            const feedRes = await fetch('/api/signal-feed');
+            const feedData = await feedRes.json();
+            
+            let feedHTML = '';
+            if (feedData.success && feedData.signals.length > 0) {
+                feedData.signals.forEach(sig => {
+                    let resultColor = sig.result === 'WIN' ? '#22c55e' : '#ef4444';
+                    let dirColorBadge = sig.direction === 'BUY' ? '#22c55e' : '#ef4444';
+                    feedHTML += `
+                        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #1e293b; font-size: 11px;">
+                            <div>
+                                <span style="color: white; font-weight: bold;">${sig.pair}</span> 
+                                <span style="color: ${dirColorBadge}; font-weight: bold;">${sig.direction}</span>
+                                <br>
+                                <span style="color: #64748b; font-size: 9px;">${new Date(sig.timestamp).toLocaleTimeString()}</span>
+                            </div>
+                            <div style="text-align: right;">
+                                <span style="color: white;">${sig.entry_price.toFixed(5)}</span>
+                                <br>
+                                <span style="color: ${resultColor}; font-weight: bold;">${sig.result}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+            } else {
+                feedHTML = '<p style="color: #64748b; text-align: center; font-size: 12px;">Waiting for signals...</p>';
+            }
+
             document.getElementById('signals-content').innerHTML = `
                 <span class="close-btn" onclick="closeModal('signals-modal')">&times;</span>
                 <div class="ai-title">📡 Live AI Signals</div>
-                <div style="background: rgba(15, 23, 42, 0.5); padding: 15px; border-radius: 8px; border-left: 3px solid ${dirColor};">
+                <div style="background: rgba(15, 23, 42, 0.5); padding: 15px; border-radius: 8px; border-left: 3px solid ${dirColor}; margin-bottom: 15px;">
                     <div style="display:flex; justify-content:space-between; font-weight:bold; margin-bottom: 10px;"><span style="font-size: 18px;">${data.pair}</span><span style="color:${dirColor}; font-size: 18px;">${data.direction}</span></div>
                     <div class="ai-data-row"><span>Entry Price</span> <b>${data.entry}</b></div>
                     <div class="ai-data-row"><span>Take Profit</span> <b style="color:#22c55e;">${data.tp}</b></div>
                     <div class="ai-data-row"><span>Stop Loss</span> <b style="color:#ef4444;">${data.sl}</b></div>
                     <div class="ai-data-row" style="border:none;"><span>Strength</span> <b>${data.strength}%</b></div>
                 </div>
-                <button class="ai-btn-trade" style="background: ${dirColor}; box-shadow: 0 0 10px ${dirColor};" onclick="tradeFromModal('${data.direction}')">Execute ${data.direction}</button>
+                
+                <p style="font-size: 12px; color: #94a3b8; margin-bottom: 5px;">Recent Signal Feed</p>
+                <div style="max-height: 150px; overflow-y: auto;">
+                    ${feedHTML}
+                </div>
+
+                <button class="ai-btn-trade" style="background: ${dirColor}; box-shadow: 0 0 10px ${dirColor}; margin-top: 15px;" onclick="tradeFromModal('${data.direction}')">Execute ${data.direction}</button>
             `;
         }
     } catch (e) { console.error(e); }
