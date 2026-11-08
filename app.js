@@ -20,11 +20,43 @@ let ws = null;
 let scrollInterval = null;
 let chartType = 'line'; 
 let candleData = []; 
+let tickerInterval = null;
 
 // --- MENU TOGGLES ---
 function toggleProfile() { document.getElementById('profile-menu').classList.toggle('open'); }
 function toggleSocial() { document.getElementById('social-menu').classList.toggle('open'); }
 function copyTrader(name) { alert(`✅ You are now copying ${name}. Trades will be mirrored to your account.`); }
+
+// --- LIVE TICKER ENGINE ---
+const fakeUsers = ["User***92", "User***17", "Trader***4", "Pro***88", "Alex***", "Sarah***", "Crypto***1", "Forex***X"];
+function startLiveTicker() {
+    if (tickerInterval) clearInterval(tickerInterval);
+    
+    tickerInterval = setInterval(() => {
+        let tickerEl = document.getElementById('live-ticker');
+        if (!tickerEl) return;
+        
+        // Reset position to off-screen right
+        tickerEl.style.transition = 'none';
+        tickerEl.style.right = '-100%';
+        
+        // Generate random win
+        let user = fakeUsers[Math.floor(Math.random() * fakeUsers.length)];
+        let amount = (Math.random() * 500 + 10).toFixed(2);
+        let pair = Math.random() > 0.5 ? "EUR/USD" : "AED/CNY";
+        let direction = Math.random() > 0.5 ? "BUY" : "SELL";
+        let color = direction === "BUY" ? "#22c55e" : "#ef4444";
+        
+        tickerEl.innerHTML = `👤 ${user} won <span style="color: #fff;">$${amount}</span> on ${pair} (${direction}) <span style="color: ${color};">●</span>`;
+        
+        // Animate sliding in from right to left
+        setTimeout(() => {
+            tickerEl.style.transition = 'right 4s linear';
+            tickerEl.style.right = '100%';
+        }, 100);
+        
+    }, 3500); // New win every 3.5 seconds
+}
 
 // --- CHART TYPE TOGGLE ---
 function setChartType(type) {
@@ -88,6 +120,7 @@ async function handleLogin() {
             loadUserData();
             loadHistory();
             startChartEngine();
+            startLiveTicker(); // Start the ticker
         } else { alert("Login failed: " + data.message); }
     } catch (e) { alert("Network error."); }
 }
@@ -107,7 +140,6 @@ async function loadUserData() {
     } catch (e) { console.error(e); }
 }
 
-// NEW: LOAD PERMANENT TRADE HISTORY
 async function loadHistory() {
     if (!state.userId) return;
     try {
@@ -236,7 +268,6 @@ function renderHistory() {
     });
 }
 
-// NEW: RENDER WALLET LEDGER
 function renderWalletLedger() {
     let ledgerDiv = document.getElementById('wallet-ledger');
     if (!ledgerDiv) return;
@@ -450,7 +481,7 @@ function openModal(modalId) {
     document.getElementById(modalId).style.display = "block"; 
     if (modalId === 'ai-modal') fetchAIStatus();
     if (modalId === 'signals-modal') fetchLiveSignals();
-    if (modalId === 'wallet-modal') renderWalletLedger(); // Load ledger when wallet opens
+    if (modalId === 'wallet-modal') renderWalletLedger(); 
 }
 function closeModal(modalId) { document.getElementById(modalId).style.display = "none"; }
 window.onclick = function(event) { if (event.target.classList.contains('modal')) event.target.style.display = "none"; }
