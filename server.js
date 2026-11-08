@@ -22,11 +22,13 @@ db.serialize(() => {
         demo_balance REAL DEFAULT 50000,
         real_balance REAL DEFAULT 110,
         real_start_balance REAL DEFAULT 110,
-        telegram_chat_id TEXT
+        telegram_chat_id TEXT,
+        display_name TEXT DEFAULT 'BEGINNER'
     )`);
 
     db.run(`ALTER TABLE users ADD COLUMN real_start_balance REAL DEFAULT 110`, (err) => {});
     db.run(`ALTER TABLE users ADD COLUMN telegram_chat_id TEXT`, (err) => {});
+    db.run(`ALTER TABLE users ADD COLUMN display_name TEXT DEFAULT 'BEGINNER'`, (err) => {});
 
     db.run(`CREATE TABLE IF NOT EXISTS trades (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -97,11 +99,10 @@ async function sendTelegramMessage(chatId, message, buttons = null) {
     } catch (error) { console.error("Telegram error:", error); }
 }
 
-// --- TELEGRAM WEBHOOK (NEW) ---
+// --- TELEGRAM WEBHOOK ---
 app.post('/api/telegram-webhook', async (req, res) => {
     const { message, callback_query } = req.body;
 
-    // Handle /start command with user ID
     if (message && message.text) {
         let chatId = message.chat.id.toString();
         let text = message.text;
@@ -133,7 +134,6 @@ app.post('/api/telegram-webhook', async (req, res) => {
         }
     }
 
-    // Handle button clicks
     if (callback_query) {
         let chatId = callback_query.message.chat.id.toString();
         let data = callback_query.data;
@@ -141,27 +141,23 @@ app.post('/api/telegram-webhook', async (req, res) => {
         let amount = parseFloat(amountStr);
         let direction = action === 'buy' ? 'BUY' : 'SELL';
 
-        // Find user by chat ID
         db.get(`SELECT id, real_balance, real_start_balance FROM users WHERE telegram_chat_id = ?`, [chatId], async (err, user) => {
             if (err || !user) {
                 sendTelegramMessage(chatId, "❌ Account not linked. Please connect on the website.");
                 return;
             }
 
-            // Check Daily Limit
             let dailyProfit = user.real_balance - user.real_start_balance;
             if (dailyProfit >= 499) {
                 sendTelegramMessage(chatId, "❌ Daily profit limit of $499 reached. Please return tomorrow.");
                 return;
             }
 
-            // Check Balance
             if (amount > user.real_balance) {
                 sendTelegramMessage(chatId, "❌ Insufficient balance.");
                 return;
             }
 
-            // Place Trade
             let mockPrice = 1.0850 + (Math.random() - 0.5) * 0.005;
             db.run(`UPDATE users SET real_balance = real_balance - ? WHERE id = ?`, [amount, user.id], function(err) {
                 if (err) {
@@ -176,7 +172,6 @@ app.post('/api/telegram-webhook', async (req, res) => {
 
                 sendTelegramMessage(chatId, `🚀 <b>Trade Placed!</b>\n\nPair: EUR/USD\nDirection: ${direction}\nAmount: $${amount}\nExpiry: 15s\n\nWaiting for result...`);
 
-                // Simulate trade result after 15 seconds
                 setTimeout(() => {
                     let isWin = Math.random() * 100 <= 98;
                     let payout = isWin ? (amount * 1.92) : 0;
@@ -252,7 +247,7 @@ app.post('/api/register', async (req, res) => {
     if (!email || !password) return res.status(400).json({ success: false, message: "Missing fields" });
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
-        db.run(`INSERT INTO users (email, password, real_start_balance) VALUES (?, ?, 110)`, [email, hashedPassword], function(err) {
+        db.run(`INSERT INTO users (email, password, real_start_balance, display_name) VALUES (?, ?, 110, 'BEGINNER')`, [email, hashedPassword], function(err) {
             if (err) return res.status(400).json({ success: false, message: "Email already exists" });
             res.json({ success: true, message: "User created", userId: this.lastID });
         });
@@ -267,7 +262,19 @@ app.post('/api/login', (req, res) => {
         if (!validPassword) return res.status(400).json({ success: false, message: "Invalid password" });
         
         logActivity(user.id, "Successful login", "🔐");
-        res.json({ success: true, userId: user.id, demoBalance: user.demo_balance, realBalance: user.real_balance });
+        res.json({ success: true, userId: user.id, demoBalance: user.demo_balance, realBalance: user.real_balance, displayName: user.display_name });
+    });
+});
+
+// --- NEW: UPDATE PROFILE ROUTE ---
+app.post('/api/update-profile', (req, res) => {
+    const { userId, displayName } = req.body;
+    if (!userId || !displayName) return res.status(400).json({ success: false, message: "Missing fields" });
+
+    db.run(`UPDATE users SET display_name = ? WHERE id = ?`, [displayName, userId], function(err) {
+        if (err) return res.status(500).json({ success: false, message: "Failed to update profile" });
+        logActivity(userId, `Updated display name to ${displayName}`, "👤");
+        res.json({ success: true, message: "Profile updated", displayName: displayName });
     });
 });
 
@@ -473,10 +480,10 @@ app.get('/api/today-stats/:userId/:accountType', (req, res) => {
 
 app.get('/api/user-data/:userId', (req, res) => {
     const userId = req.params.userId;
-    db.get(`SELECT demo_balance, real_balance FROM users WHERE id = ?`, [userId], (err, user) => {
+    db.get(`SELECT demo_balance, real_balance, display_name FROM users WHERE id = ?`, [userId], (err, user) => {
         if (err || !user) return res.status(404).json({ success: false, message: "User not found" });
         db.all(`SELECT * FROM trades WHERE user_id = ? ORDER BY timestamp DESC LIMIT 10`, [userId], (err, trades) => {
-            res.json({ success: true, balances: user, history: trades });
+            res.json({ success: true, balances: user, history: trades, displayName: user.display_name });
         });
     });
 });
