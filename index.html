@@ -252,7 +252,7 @@
             <div class="menu-item" onclick="openModal('finance-modal')"><span>💰 Finance</span> <span>></span></div>
             <div class="menu-item" onclick="alert('Coming Soon')"><span>👤 Profile</span> <span>></span></div>
             <div class="menu-item" onclick="openModal('market-modal')"><span>🌍 Market</span> <span>></span></div>
-            <div class="menu-item" onclick="alert('Coming Soon')"><span>🎯 Activities</span> <span>></span></div>
+            <div class="menu-item" onclick="openModal('activities-modal')"><span>🎯 Activities</span> <span>></span></div>
             <div class="menu-item" onclick="openModal('chat-modal')"><span>💬 Chat</span> <span>></span></div>
             <div class="menu-item" onclick="window.open('https://t.me/JAMES_AI_TRADING_BOT', '_blank')"><span>❓ Help</span> <span>></span></div>
             <div class="menu-item" onclick="openModal('settings-modal')"><span>⚙️ Settings</span> <span>></span></div>
@@ -262,7 +262,21 @@
         </div>
     </div>
 
-    <!-- NEW MARKET WATCH MODAL -->
+    <!-- NEW ACTIVITIES MODAL -->
+    <div id="activities-modal" class="modal">
+        <div class="modal-content" style="padding-bottom: 0;">
+            <span class="close-btn" onclick="closeModal('activities-modal')">&times;</span>
+            <h2>Account Activities</h2>
+            <p style="font-size: 12px; color: #94a3b8; margin-bottom: 15px;">Your recent account actions</p>
+            
+            <div style="background: #0b1120; border-radius: 8px; padding: 10px; max-height: 400px; overflow-y: auto; margin-bottom: 20px;">
+                <div id="activities-list">
+                    <p style="color: #64748b; text-align: center; font-size: 13px;">Loading activities...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="market-modal" class="modal">
         <div class="modal-content" style="padding-bottom: 0;">
             <span class="close-btn" onclick="closeModal('market-modal')">&times;</span>
