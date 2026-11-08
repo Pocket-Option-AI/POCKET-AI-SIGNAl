@@ -5,7 +5,8 @@ let state = {
     balances: { demo: 0, real: 0 },
     activeTrades: [],
     history: [],
-    currentPair: 'EUR/USD'
+    currentPair: 'EUR/USD',
+    currentPayout: 92
 };
 
 const canvas = document.getElementById('tradingChart');
@@ -23,6 +24,7 @@ let chartType = 'line';
 let candleData = []; 
 let tickerInterval = null;
 let marketInterval = null;
+let payoutInterval = null;
 
 // --- MENU TOGGLES ---
 function toggleProfile() { 
@@ -33,6 +35,38 @@ function toggleProfile() {
 }
 function toggleSocial() { document.getElementById('social-menu').classList.toggle('open'); }
 function copyTrader(name) { alert(`✅ You are now copying ${name}. Trades will be mirrored to your account.`); }
+
+// --- DYNAMIC PAYOUT ENGINE (HOT/COLD) ---
+function updateDynamicPayouts() {
+    // Generate random payouts between 45% and 94%
+    let pairs = [
+        { id: 'eur', min: 45, max: 94 },
+        { id: 'gbp', min: 45, max: 94 },
+        { id: 'jpy', min: 45, max: 94 },
+        { id: 'aed', min: 45, max: 94 }
+    ];
+    
+    pairs.forEach(p => {
+        let newPayout = Math.floor(Math.random() * (p.max - p.min + 1)) + p.min;
+        let el = document.getElementById(`payout-${p.id}`);
+        let hotBadge = document.getElementById(`hot-${p.id}`);
+        
+        if (el) {
+            el.innerText = newPayout + "%";
+            
+            // If the payout is 90% or higher, show the Hot badge
+            if (hotBadge) {
+                if (newPayout >= 90) {
+                    hotBadge.style.display = 'inline-block';
+                    el.style.color = '#f59e0b'; // Gold color for hot
+                } else {
+                    hotBadge.style.display = 'none';
+                    el.style.color = '#22c55e'; // Green color for normal
+                }
+            }
+        }
+    });
+}
 
 // --- FETCH ACTIVITIES ---
 async function fetchActivities() {
@@ -180,11 +214,12 @@ async function fetchFinanceLedger() {
 function toggleAssetMenu() {
     let menu = document.getElementById('asset-menu');
     if (menu.style.bottom === '0px') { menu.style.bottom = '-100%'; } 
-    else { menu.style.bottom = '0px'; }
+    else { menu.style.bottom = '0px'; updateDynamicPayouts(); }
 }
 
 function changeAsset(pair, basePrice, payout) {
     state.currentPair = pair;
+    state.currentPayout = payout;
     currentPrice = basePrice;
     document.getElementById('selected-asset-name').innerText = pair;
     document.getElementById('current-pair-name').innerText = pair;
@@ -275,6 +310,10 @@ async function handleLogin() {
             loadHistory();
             startChartEngine();
             startLiveTicker();
+            
+            // Start the dynamic payout timer
+            if (payoutInterval) clearInterval(payoutInterval);
+            payoutInterval = setInterval(updateDynamicPayouts, 5000);
         } else { alert("Login failed: " + data.message); }
     } catch (e) { alert("Network error."); }
 }
@@ -614,7 +653,7 @@ window.onclick = function(event) { if (event.target.classList.contains('modal'))
 
 document.getElementById('trade-amount').addEventListener('input', (e) => {
     let amount = parseFloat(e.target.value) || 0;
-    document.getElementById('potential-profit').innerText = "+$" + (amount * 0.92).toFixed(2);
+    document.getElementById('potential-profit').innerText = "+$" + (amount * (state.currentPayout / 100)).toFixed(2);
 });
 
 async function fetchAIStatus() {
