@@ -32,7 +32,6 @@
     </div>
 
     <div id="dashboard-screen" class="screen">
-        
         <header class="top-header">
             <div class="profile-icon" onclick="toggleProfile()">👤</div>
             <div class="account-selector">
@@ -53,12 +52,10 @@
                 <span id="selected-asset-name">EUR/USD</span>
                 <span style="font-size: 10px;">▼</span>
             </div>
-            
             <div style="display: flex; background: #151e32; border-radius: 8px; border: 1px solid #1e293b; overflow: hidden;">
                 <button id="btn-line" onclick="setChartType('line')" style="background: #3b82f6; color: white; border: none; padding: 8px 12px; font-size: 12px; font-weight: bold; cursor: pointer;">📈 Line</button>
                 <button id="btn-candle" onclick="setChartType('candle')" style="background: transparent; color: #94a3b8; border: none; padding: 8px 12px; font-size: 12px; font-weight: bold; cursor: pointer;">📊 Candles</button>
             </div>
-            
             <select id="chart-timeframe" style="width: 30%; background: #151e32; color: white; border: 1px solid #1e293b; padding: 10px; border-radius: 8px; font-size: 14px; outline: none;">
                 <option value="5">5s</option>
                 <option value="15" selected>15s</option>
@@ -77,17 +74,13 @@
 
         <div class="trade-panel">
             <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 6px; padding: 8px; margin-bottom: 10px; overflow: hidden; position: relative; height: 30px;">
-                <div id="live-ticker" style="color: #22c55e; font-size: 11px; font-weight: bold; white-space: nowrap; position: absolute; right: -100%; transition: right 0.5s ease-out;">
-                    Loading recent wins...
-                </div>
+                <div id="live-ticker" style="color: #22c55e; font-size: 11px; font-weight: bold; white-space: nowrap; position: absolute; right: -100%; transition: right 0.5s ease-out;">Loading recent wins...</div>
             </div>
-
             <div class="slider-container">
                 <span class="slider-label green" id="green-percent">9%</span>
                 <input type="range" min="0" max="100" value="9" class="trade-slider" id="payout-slider">
                 <span class="slider-label red" id="red-percent">91%</span>
             </div>
-
             <div class="input-row">
                 <div class="input-group">
                     <label>TIME</label>
@@ -103,12 +96,10 @@
                     <input type="number" id="trade-amount" value="1" min="1">
                 </div>
             </div>
-
             <div class="profit-info">
                 <span>Payout: <strong>+92%</strong></span>
                 <span>Profit: <strong id="potential-profit">+$0.92</strong></span>
             </div>
-
             <div class="action-buttons">
                 <button class="btn-buy" onclick="placeTrade('BUY')">↗ BUY</button>
                 <button class="btn-sell" onclick="placeTrade('SELL')">↘ SELL</button>
@@ -131,45 +122,29 @@
         </nav>
     </div>
 
-    <!-- TRADER PROFILE PAGE (NEW) -->
-    <div id="trader-profile" class="profile-menu">
+    <div id="trader-profile">
         <div class="profile-header" style="margin-bottom: 10px;">
-            <span class="close-btn" onclick="closeTraderProfile()" style="position: static; margin: 0; font-size: 24px;">← Back</span>
+            <span onclick="closeTraderProfile()" style="font-size: 24px; cursor: pointer; color: #94a3b8;">← Back</span>
             <span style="font-size: 14px; font-weight: bold; color: #94a3b8;">Trader Profile</span>
         </div>
-        
         <div style="text-align: center; margin-top: 20px;">
             <div style="width: 80px; height: 80px; background: #1e293b; border-radius: 50%; margin: 0 auto 15px auto; display: flex; justify-content: center; align-items: center; font-size: 40px;">👤</div>
             <h2 id="trader-name" style="color: white; font-size: 24px;">Trader Name</h2>
             <p style="color: #22c55e; font-size: 14px; font-weight: bold; margin-top: 5px;">VERIFIED ✔</p>
         </div>
-
         <div style="background: #151e32; border-radius: 8px; padding: 20px; margin-top: 20px; text-align: center;">
             <p style="font-size: 12px; color: #94a3b8;">Total Profit (30 Days)</p>
             <h2 id="trader-profit" style="color: #22c55e; font-size: 32px; font-weight: bold; margin-top: 5px;">+$0.00</h2>
-            
             <div style="display: flex; justify-content: space-around; margin-top: 20px; border-top: 1px solid #1e293b; padding-top: 15px;">
-                <div>
-                    <p style="font-size: 10px; color: #64748b;">Win Rate</p>
-                    <p id="trader-winrate" style="font-size: 16px; font-weight: bold; color: white;">0%</p>
-                </div>
-                <div>
-                    <p style="font-size: 10px; color: #64748b;">Total Trades</p>
-                    <p id="trader-trades" style="font-size: 16px; font-weight: bold; color: white;">0</p>
-                </div>
+                <div><p style="font-size: 10px; color: #64748b;">Win Rate</p><p id="trader-winrate" style="font-size: 16px; font-weight: bold; color: white;">0%</p></div>
+                <div><p style="font-size: 10px; color: #64748b;">Total Trades</p><p id="trader-trades" style="font-size: 16px; font-weight: bold; color: white;">0</p></div>
             </div>
         </div>
-
         <div style="background: #151e32; border-radius: 8px; padding: 15px; margin-top: 15px;">
             <p style="font-size: 12px; color: #94a3b8; margin-bottom: 10px;">Recent Trades</p>
-            <div id="trader-recent-trades">
-                <!-- Generated by JS -->
-            </div>
+            <div id="trader-recent-trades"></div>
         </div>
-
-        <div style="height: 80px;"></div> <!-- Spacer for bottom button -->
-
-        <div style="position: fixed; bottom: 0; left: 0; width: 100%; padding: 15px; background: #0f172a; border-top: 1px solid #1e293b;">
+        <div class="copy-fixed-bottom">
             <button onclick="copyTrader(document.getElementById('trader-name').innerText)" style="width: 100%; padding: 16px; background: #22c55e; color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4);">COPY TRADER</button>
         </div>
     </div>
@@ -188,97 +163,47 @@
 
     <div id="social-menu" class="profile-menu">
         <div class="profile-header">
-            <div>
-                <span style="font-size: 18px; font-weight: bold; color: white;">Social Trading</span>
-                <p style="font-size: 12px; color: #94a3b8; margin-top: 4px;">Top Real Account Traders</p>
-            </div>
+            <div><span style="font-size: 18px; font-weight: bold; color: white;">Social Trading</span><p style="font-size: 12px; color: #94a3b8; margin-top: 4px;">Top Real Account Traders</p></div>
             <span class="close-btn" onclick="toggleSocial()">&times;</span>
         </div>
         <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 20px;">
             <div class="trader-card" onclick="openTraderProfile('Alex Forex', 2450, 84, 156)">
-                <div class="trader-info">
-                    <span class="badge gold">🥇</span>
-                    <div><div style="font-weight: bold; color: white;">Alex Forex</div><div style="font-size: 11px; color: #94a3b8;">Win Rate: 84%</div></div>
-                </div>
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <span style="color: #22c55e; font-weight: bold;">+$2,450</span>
-                    <button class="btn-copy" onclick="event.stopPropagation(); copyTrader('Alex Forex')">Copy</button>
-                </div>
+                <div class="trader-info"><span class="badge gold">🥇</span><div><div style="font-weight: bold; color: white;">Alex Forex</div><div style="font-size: 11px; color: #94a3b8;">Win Rate: 84%</div></div></div>
+                <div style="display: flex; align-items: center; gap: 10px;"><span style="color: #22c55e; font-weight: bold;">+$2,450</span><button class="btn-copy" onclick="event.stopPropagation(); copyTrader('Alex Forex')">Copy</button></div>
             </div>
             <div class="trader-card" onclick="openTraderProfile('Sarah J.', 1820, 79, 210)">
-                <div class="trader-info">
-                    <span class="badge silver">🥈</span>
-                    <div><div style="font-weight: bold; color: white;">Sarah J.</div><div style="font-size: 11px; color: #94a3b8;">Win Rate: 79%</div></div>
-                </div>
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <span style="color: #22c55e; font-weight: bold;">+$1,820</span>
-                    <button class="btn-copy" onclick="event.stopPropagation(); copyTrader('Sarah J.')">Copy</button>
-                </div>
+                <div class="trader-info"><span class="badge silver">🥈</span><div><div style="font-weight: bold; color: white;">Sarah J.</div><div style="font-size: 11px; color: #94a3b8;">Win Rate: 79%</div></div></div>
+                <div style="display: flex; align-items: center; gap: 10px;"><span style="color: #22c55e; font-weight: bold;">+$1,820</span><button class="btn-copy" onclick="event.stopPropagation(); copyTrader('Sarah J.')">Copy</button></div>
             </div>
             <div class="trader-card" onclick="openTraderProfile('Mike T.', 1150, 75, 98)">
-                <div class="trader-info">
-                    <span class="badge bronze">🥉</span>
-                    <div><div style="font-weight: bold; color: white;">Mike T.</div><div style="font-size: 11px; color: #94a3b8;">Win Rate: 75%</div></div>
-                </div>
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <span style="color: #22c55e; font-weight: bold;">+$1,150</span>
-                    <button class="btn-copy" onclick="event.stopPropagation(); copyTrader('Mike T.')">Copy</button>
-                </div>
+                <div class="trader-info"><span class="badge bronze">🥉</span><div><div style="font-weight: bold; color: white;">Mike T.</div><div style="font-size: 11px; color: #94a3b8;">Win Rate: 75%</div></div></div>
+                <div style="display: flex; align-items: center; gap: 10px;"><span style="color: #22c55e; font-weight: bold;">+$1,150</span><button class="btn-copy" onclick="event.stopPropagation(); copyTrader('Mike T.')">Copy</button></div>
             </div>
             <div class="trader-card" onclick="openTraderProfile('David K.', 890, 68, 142)">
-                <div class="trader-info">
-                    <span class="badge">4</span>
-                    <div><div style="font-weight: bold; color: white;">David K.</div><div style="font-size: 11px; color: #94a3b8;">Win Rate: 68%</div></div>
-                </div>
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <span style="color: #22c55e; font-weight: bold;">+$890</span>
-                    <button class="btn-copy" onclick="event.stopPropagation(); copyTrader('David K.')">Copy</button>
-                </div>
+                <div class="trader-info"><span class="badge">4</span><div><div style="font-weight: bold; color: white;">David K.</div><div style="font-size: 11px; color: #94a3b8;">Win Rate: 68%</div></div></div>
+                <div style="display: flex; align-items: center; gap: 10px;"><span style="color: #22c55e; font-weight: bold;">+$890</span><button class="btn-copy" onclick="event.stopPropagation(); copyTrader('David K.')">Copy</button></div>
             </div>
             <div class="trader-card" onclick="openTraderProfile('Elena R.', 540, 62, 87)">
-                <div class="trader-info">
-                    <span class="badge">5</span>
-                    <div><div style="font-weight: bold; color: white;">Elena R.</div><div style="font-size: 11px; color: #94a3b8;">Win Rate: 62%</div></div>
-                </div>
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <span style="color: #22c55e; font-weight: bold;">+$540</span>
-                    <button class="btn-copy" onclick="event.stopPropagation(); copyTrader('Elena R.')">Copy</button>
-                </div>
+                <div class="trader-info"><span class="badge">5</span><div><div style="font-weight: bold; color: white;">Elena R.</div><div style="font-size: 11px; color: #94a3b8;">Win Rate: 62%</div></div></div>
+                <div style="display: flex; align-items: center; gap: 10px;"><span style="color: #22c55e; font-weight: bold;">+$540</span><button class="btn-copy" onclick="event.stopPropagation(); copyTrader('Elena R.')">Copy</button></div>
             </div>
         </div>
     </div>
 
     <div id="profile-menu" class="profile-menu">
         <div class="profile-header">
-            <div>
-                <span style="font-size: 14px; font-weight: bold; color: #94a3b8;">BEGINNER</span>
-                <span style="color: #22c55e; font-size: 10px; margin-left: 10px; font-weight: bold; background: rgba(34, 197, 94, 0.1); padding: 2px 6px; border-radius: 4px;">VERIFIED ✔</span>
-            </div>
+            <div><span style="font-size: 14px; font-weight: bold; color: #94a3b8;">BEGINNER</span><span style="color: #22c55e; font-size: 10px; margin-left: 10px; font-weight: bold; background: rgba(34, 197, 94, 0.1); padding: 2px 6px; border-radius: 4px;">VERIFIED ✔</span></div>
             <span class="close-btn" onclick="toggleProfile()">&times;</span>
         </div>
-        <div class="profile-balance">
-            <p style="font-size: 12px; color: #94a3b8;">Balance</p>
-            <h3 id="profile-balance-text">$0.00</h3>
-        </div>
-
+        <div class="profile-balance"><p style="font-size: 12px; color: #94a3b8;">Balance</p><h3 id="profile-balance-text">$0.00</h3></div>
         <div style="background: #151e32; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #1e293b;">
             <p style="font-size: 12px; color: #94a3b8; margin-bottom: 10px;">Today's Stats</p>
             <div style="display: flex; justify-content: space-between; text-align: center;">
-                <div>
-                    <p style="font-size: 10px; color: #64748b;">Trades</p>
-                    <p id="stat-trades" style="font-size: 16px; font-weight: bold; color: white;">0</p>
-                </div>
-                <div>
-                    <p style="font-size: 10px; color: #64748b;">Win Rate</p>
-                    <p id="stat-winrate" style="font-size: 16px; font-weight: bold; color: white;">0%</p>
-                </div>
-                <div>
-                    <p style="font-size: 10px; color: #64748b;">Profit</p>
-                    <p id="stat-profit" style="font-size: 16px; font-weight: bold; color: #22c55e;">$0.00</p>
-                </div>
+                <div><p style="font-size: 10px; color: #64748b;">Trades</p><p id="stat-trades" style="font-size: 16px; font-weight: bold; color: white;">0</p></div>
+                <div><p style="font-size: 10px; color: #64748b;">Win Rate</p><p id="stat-winrate" style="font-size: 16px; font-weight: bold; color: white;">0%</p></div>
+                <div><p style="font-size: 10px; color: #64748b;">Profit</p><p id="stat-profit" style="font-size: 16px; font-weight: bold; color: #22c55e;">$0.00</p></div>
             </div>
         </div>
-
         <div class="profile-buttons">
             <button class="btn-deposit" onclick="openModal('deposit-modal')">Deposit</button>
             <button class="btn-withdraw" onclick="openModal('withdraw-modal')">Withdraw</button>
@@ -305,186 +230,18 @@
         </div>
     </div>
 
-    <div id="activities-modal" class="modal">
-        <div class="modal-content" style="padding-bottom: 0;">
-            <span class="close-btn" onclick="closeModal('activities-modal')">&times;</span>
-            <h2>Account Activities</h2>
-            <p style="font-size: 12px; color: #94a3b8; margin-bottom: 15px;">Your recent account actions</p>
-            <div style="background: #0b1120; border-radius: 8px; padding: 10px; max-height: 400px; overflow-y: auto; margin-bottom: 20px;">
-                <div id="activities-list">
-                    <p style="color: #64748b; text-align: center; font-size: 13px;">Loading activities...</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="market-modal" class="modal">
-        <div class="modal-content" style="padding-bottom: 0;">
-            <span class="close-btn" onclick="closeModal('market-modal')">&times;</span>
-            <h2>Market Watch</h2>
-            <p style="font-size: 12px; color: #94a3b8; margin-bottom: 15px;">Live prices & daily change</p>
-            <div id="market-list" style="background: #0b1120; border-radius: 8px; padding: 10px; margin-bottom: 20px;"></div>
-        </div>
-    </div>
-
-    <div id="progress-modal" class="modal">
-        <div class="modal-content" style="padding-bottom: 0;">
-            <span class="close-btn" onclick="closeModal('progress-modal')">&times;</span>
-            <h2>Your Progress</h2>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; margin-top: 15px;">
-                <div style="background: #0b1120; padding: 12px; border-radius: 8px; text-align: center;">
-                    <p style="font-size: 10px; color: #64748b;">Best Trade</p>
-                    <p id="prog-best" style="font-size: 16px; font-weight: bold; color: #22c55e;">$0.00</p>
-                </div>
-                <div style="background: #0b1120; padding: 12px; border-radius: 8px; text-align: center;">
-                    <p style="font-size: 10px; color: #64748b;">Total Volume</p>
-                    <p id="prog-volume" style="font-size: 16px; font-weight: bold; color: white;">$0.00</p>
-                </div>
-                <div style="background: #0b1120; padding: 12px; border-radius: 8px; text-align: center;">
-                    <p style="font-size: 10px; color: #64748b;">Win Streak</p>
-                    <p id="prog-streak" style="font-size: 16px; font-weight: bold; color: #f59e0b;">0</p>
-                </div>
-                <div style="background: #0b1120; padding: 12px; border-radius: 8px; text-align: center;">
-                    <p style="font-size: 10px; color: #64748b;">Total Wins</p>
-                    <p id="prog-wins" style="font-size: 16px; font-weight: bold; color: white;">0</p>
-                </div>
-            </div>
-            <div style="background: #0b1120; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                <p style="font-size: 12px; color: #94a3b8; margin-bottom: 15px;">Last 7 Days Profit</p>
-                <div id="prog-chart" style="display: flex; justify-content: space-between; align-items: flex-end; height: 100px;"></div>
-            </div>
-        </div>
-    </div>
-
-    <div id="finance-modal" class="modal">
-        <div class="modal-content" style="padding-bottom: 0;">
-            <span class="close-btn" onclick="closeModal('finance-modal')">&times;</span>
-            <h2>Finance Ledger</h2>
-            <p style="font-size: 12px; color: #94a3b8; margin-bottom: 15px;">Your complete transaction history</p>
-            <div style="background: #0b1120; border-radius: 8px; padding: 10px; max-height: 400px; overflow-y: auto; margin-bottom: 20px;">
-                <div id="finance-ledger-list">
-                    <p style="color: #64748b; text-align: center; font-size: 13px;">Loading transactions...</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="settings-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn" onclick="closeModal('settings-modal')">&times;</span>
-            <h2>Account Settings</h2>
-            <div style="margin-top: 20px;">
-                <label style="font-size: 12px; color: #94a3b8;">Current Password</label>
-                <input type="password" id="current-pass" style="width: 100%; padding: 12px; background: #0b1120; border: 1px solid #1e293b; color: white; border-radius: 8px; margin-top: 5px; margin-bottom: 15px; outline: none;">
-                <label style="font-size: 12px; color: #94a3b8;">New Password</label>
-                <input type="password" id="new-pass" style="width: 100%; padding: 12px; background: #0b1120; border: 1px solid #1e293b; color: white; border-radius: 8px; margin-top: 5px; margin-bottom: 15px; outline: none;">
-                <label style="font-size: 12px; color: #94a3b8;">Confirm New Password</label>
-                <input type="password" id="confirm-pass" style="width: 100%; padding: 12px; background: #0b1120; border: 1px solid #1e293b; color: white; border-radius: 8px; margin-top: 5px; margin-bottom: 20px; outline: none;">
-                <button id="change-pass-btn" onclick="changePassword()" style="width: 100%; padding: 14px; background: #3b82f6; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">Update Password</button>
-            </div>
-            <hr style="border-color: #1e293b; margin: 25px 0;">
-            <button id="reset-demo-btn" onclick="resetDemoBalance()" style="width: 100%; padding: 14px; background: #ef4444; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">Reset Demo Balance to $50,000</button>
-        </div>
-    </div>
-
+    <div id="activities-modal" class="modal"><div class="modal-content" style="padding-bottom: 0;"><span class="close-btn" onclick="closeModal('activities-modal')">&times;</span><h2>Account Activities</h2><p style="font-size: 12px; color: #94a3b8; margin-bottom: 15px;">Your recent account actions</p><div style="background: #0b1120; border-radius: 8px; padding: 10px; max-height: 400px; overflow-y: auto; margin-bottom: 20px;"><div id="activities-list"><p style="color: #64748b; text-align: center; font-size: 13px;">Loading activities...</p></div></div></div></div>
+    <div id="market-modal" class="modal"><div class="modal-content" style="padding-bottom: 0;"><span class="close-btn" onclick="closeModal('market-modal')">&times;</span><h2>Market Watch</h2><p style="font-size: 12px; color: #94a3b8; margin-bottom: 15px;">Live prices & daily change</p><div id="market-list" style="background: #0b1120; border-radius: 8px; padding: 10px; margin-bottom: 20px;"></div></div></div>
+    <div id="progress-modal" class="modal"><div class="modal-content" style="padding-bottom: 0;"><span class="close-btn" onclick="closeModal('progress-modal')">&times;</span><h2>Your Progress</h2><div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; margin-top: 15px;"><div style="background: #0b1120; padding: 12px; border-radius: 8px; text-align: center;"><p style="font-size: 10px; color: #64748b;">Best Trade</p><p id="prog-best" style="font-size: 16px; font-weight: bold; color: #22c55e;">$0.00</p></div><div style="background: #0b1120; padding: 12px; border-radius: 8px; text-align: center;"><p style="font-size: 10px; color: #64748b;">Total Volume</p><p id="prog-volume" style="font-size: 16px; font-weight: bold; color: white;">$0.00</p></div><div style="background: #0b1120; padding: 12px; border-radius: 8px; text-align: center;"><p style="font-size: 10px; color: #64748b;">Win Streak</p><p id="prog-streak" style="font-size: 16px; font-weight: bold; color: #f59e0b;">0</p></div><div style="background: #0b1120; padding: 12px; border-radius: 8px; text-align: center;"><p style="font-size: 10px; color: #64748b;">Total Wins</p><p id="prog-wins" style="font-size: 16px; font-weight: bold; color: white;">0</p></div></div><div style="background: #0b1120; padding: 15px; border-radius: 8px; margin-bottom: 20px;"><p style="font-size: 12px; color: #94a3b8; margin-bottom: 15px;">Last 7 Days Profit</p><div id="prog-chart" style="display: flex; justify-content: space-between; align-items: flex-end; height: 100px;"></div></div></div></div>
+    <div id="finance-modal" class="modal"><div class="modal-content" style="padding-bottom: 0;"><span class="close-btn" onclick="closeModal('finance-modal')">&times;</span><h2>Finance Ledger</h2><p style="font-size: 12px; color: #94a3b8; margin-bottom: 15px;">Your complete transaction history</p><div style="background: #0b1120; border-radius: 8px; padding: 10px; max-height: 400px; overflow-y: auto; margin-bottom: 20px;"><div id="finance-ledger-list"><p style="color: #64748b; text-align: center; font-size: 13px;">Loading transactions...</p></div></div></div></div>
+    <div id="settings-modal" class="modal"><div class="modal-content"><span class="close-btn" onclick="closeModal('settings-modal')">&times;</span><h2>Account Settings</h2><div style="margin-top: 20px;"><label style="font-size: 12px; color: #94a3b8;">Current Password</label><input type="password" id="current-pass" style="width: 100%; padding: 12px; background: #0b1120; border: 1px solid #1e293b; color: white; border-radius: 8px; margin-top: 5px; margin-bottom: 15px; outline: none;"><label style="font-size: 12px; color: #94a3b8;">New Password</label><input type="password" id="new-pass" style="width: 100%; padding: 12px; background: #0b1120; border: 1px solid #1e293b; color: white; border-radius: 8px; margin-top: 5px; margin-bottom: 15px; outline: none;"><label style="font-size: 12px; color: #94a3b8;">Confirm New Password</label><input type="password" id="confirm-pass" style="width: 100%; padding: 12px; background: #0b1120; border: 1px solid #1e293b; color: white; border-radius: 8px; margin-top: 5px; margin-bottom: 20px; outline: none;"><button id="change-pass-btn" onclick="changePassword()" style="width: 100%; padding: 14px; background: #3b82f6; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">Update Password</button></div><hr style="border-color: #1e293b; margin: 25px 0;"><button id="reset-demo-btn" onclick="resetDemoBalance()" style="width: 100%; padding: 14px; background: #ef4444; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">Reset Demo Balance to $50,000</button></div></div>
     <div id="signals-modal" class="modal"><div class="modal-content ai-card" id="signals-content"></div></div>
     <div id="ai-modal" class="modal"><div class="modal-content ai-card" id="ai-content"></div></div>
-    
-    <div id="chat-modal" class="modal">
-        <div class="modal-content" style="padding: 0; overflow: hidden; height: 500px; display: flex; flex-direction: column; border-radius: 12px; background: #0e1621;">
-            <div style="background: #17212b; padding: 15px; border-bottom: 1px solid #242f3d; display: flex; justify-content: space-between; align-items: center;">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <div style="background: #3390ec; width: 35px; height: 35px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 18px;">✈️</div>
-                    <div>
-                        <h2 style="font-size: 15px; margin: 0; color: white;">Pocket AI Support</h2>
-                        <span style="font-size: 11px; color: #3390ec;">bot</span>
-                    </div>
-                </div>
-                <span class="close-btn" onclick="closeModal('chat-modal')" style="position: static; margin: 0; color: #708499;">&times;</span>
-            </div>
-            <div id="chat-messages" style="flex: 1; overflow-y: auto; padding: 15px; background: #0e1621; display: flex; flex-direction: column; gap: 10px;">
-                <div style="background: #182533; color: white; padding: 10px 15px; border-radius: 12px; border-bottom-left-radius: 0; max-width: 85%; align-self: flex-start; font-size: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.2);">
-                    Hello user! Welcome to Pocket AI Signal. How can we help you today?
-                </div>
-            </div>
-            <div style="padding: 10px; background: #17212b; display: flex; gap: 10px; align-items: center;">
-                <input type="text" id="chat-input" placeholder="Message" style="flex: 1; padding: 12px 15px; border-radius: 20px; border: none; background: #242f3d; color: white; outline: none; font-size: 14px;" onkeypress="handleChatEnter(event)">
-                <button onclick="sendChatMessage()" style="background: #3390ec; color: white; border: none; width: 42px; height: 42px; border-radius: 50%; font-size: 18px; cursor: pointer; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">➤</button>
-            </div>
-        </div>
-    </div>
-    
-    <div id="deposit-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn" onclick="closeModal('deposit-modal')">&times;</span>
-            <h2>Select Deposit Amount</h2>
-            <div class="settings-list" style="margin-top:15px;">
-                <div class="settings-item" onclick="openStripeCheckout(10)">$10</div>
-                <div class="settings-item" onclick="openStripeCheckout(50)">$50</div>
-                <div class="settings-item" onclick="openStripeCheckout(100)">$100</div>
-                <div class="settings-item" onclick="openStripeCheckout(500)">$500</div>
-                <div class="settings-item" onclick="openStripeCheckout(1000)">$1000</div>
-                <div class="settings-item" onclick="openStripeCheckout(5000)">$5000</div>
-            </div>
-        </div>
-    </div>
-    
-    <div id="stripe-modal" class="modal">
-        <div class="modal-content" style="background: #ffffff; color: #1a202c;">
-            <span class="close-btn" onclick="closeModal('stripe-modal')" style="color: #64748b;">&times;</span>
-            <div style="text-align: center; margin-bottom: 20px;">
-                <h2 style="font-size: 18px; color: #1a202c;">Pay with Card</h2>
-                <p style="font-size: 24px; font-weight: bold; color: #22c55e; margin-top: 5px;" id="stripe-amount-display">$0.00</p>
-            </div>
-            <input type="email" placeholder="Email" style="width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc; font-size: 14px;">
-            <input type="text" placeholder="Card Number" maxlength="16" style="width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc; font-size: 14px;">
-            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                <input type="text" placeholder="MM / YY" maxlength="5" style="flex: 1; padding: 12px; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc; font-size: 14px;">
-                <input type="text" placeholder="CVC" maxlength="3" style="flex: 1; padding: 12px; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc; font-size: 14px;">
-            </div>
-            <button id="stripe-pay-btn" onclick="processStripePayment()" style="width: 100%; padding: 14px; background: #2563eb; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">Pay</button>
-        </div>
-    </div>
-    
-    <div id="withdraw-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn" onclick="closeModal('withdraw-modal')">&times;</span>
-            <h2>Withdraw Funds</h2>
-            <p style="font-size: 12px; color: #94a3b8; margin-bottom: 15px;">Minimum withdrawal: $5,000</p>
-            <div style="margin-bottom: 15px;">
-                <label style="font-size: 12px; color: #94a3b8;">Select Network</label>
-                <select id="crypto-network" style="width: 100%; padding: 12px; background: #0b1120; border: 1px solid #1e293b; color: white; border-radius: 8px; margin-top: 5px; outline: none;">
-                    <option value="USDT_TRC20">USDT (TRC20)</option>
-                    <option value="USDT_ERC20">USDT (ERC20)</option>
-                    <option value="BTC">Bitcoin (BTC)</option>
-                    <option value="ETH">Ethereum (ETH)</option>
-                </select>
-            </div>
-            <div style="margin-bottom: 15px;">
-                <label style="font-size: 12px; color: #94a3b8;">Wallet Address</label>
-                <input type="text" id="crypto-address" placeholder="Enter wallet address" style="width: 100%; padding: 12px; background: #0b1120; border: 1px solid #1e293b; color: white; border-radius: 8px; margin-top: 5px; outline: none;">
-            </div>
-            <div style="margin-bottom: 20px;">
-                <label style="font-size: 12px; color: #94a3b8;">Amount ($)</label>
-                <input type="number" id="crypto-amount" placeholder="Min $5000" style="width: 100%; padding: 12px; background: #0b1120; border: 1px solid #1e293b; color: white; border-radius: 8px; margin-top: 5px; outline: none;">
-            </div>
-            <button id="withdraw-btn" onclick="processWithdrawal()" style="width: 100%; padding: 14px; background: #ef4444; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">Confirm Withdrawal</button>
-        </div>
-    </div>
-    
-    <div id="wallet-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn" onclick="closeModal('wallet-modal')">&times;</span>
-            <h2>My Wallet</h2>
-            <div class="wallet-balance-display">
-                <p>Available Balance</p>
-                <h3 id="wallet-balance-text">$0.00</h3>
-            </div>
-            <div style="background: #0b1120; border-radius: 8px; padding: 10px; max-height: 150px; overflow-y: auto;">
-                <div id="wallet-ledger"></div>
-            </div>
-        </div>
-    </div>
+    <div id="chat-modal" class="modal"><div class="modal-content" style="padding: 0; overflow: hidden; height: 500px; display: flex; flex-direction: column; border-radius: 12px; background: #0e1621;"><div style="background: #17212b; padding: 15px; border-bottom: 1px solid #242f3d; display: flex; justify-content: space-between; align-items: center;"><div style="display: flex; align-items: center; gap: 10px;"><div style="background: #3390ec; width: 35px; height: 35px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 18px;">✈️</div><div><h2 style="font-size: 15px; margin: 0; color: white;">Pocket AI Support</h2><span style="font-size: 11px; color: #3390ec;">bot</span></div></div><span class="close-btn" onclick="closeModal('chat-modal')" style="position: static; margin: 0; color: #708499;">&times;</span></div><div id="chat-messages" style="flex: 1; overflow-y: auto; padding: 15px; background: #0e1621; display: flex; flex-direction: column; gap: 10px;"><div style="background: #182533; color: white; padding: 10px 15px; border-radius: 12px; border-bottom-left-radius: 0; max-width: 85%; align-self: flex-start; font-size: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.2);">Hello user! Welcome to Pocket AI Signal. How can we help you today?</div></div><div style="padding: 10px; background: #17212b; display: flex; gap: 10px; align-items: center;"><input type="text" id="chat-input" placeholder="Message" style="flex: 1; padding: 12px 15px; border-radius: 20px; border: none; background: #242f3d; color: white; outline: none; font-size: 14px;" onkeypress="handleChatEnter(event)"><button onclick="sendChatMessage()" style="background: #3390ec; color: white; border: none; width: 42px; height: 42px; border-radius: 50%; font-size: 18px; cursor: pointer; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">➤</button></div></div></div>
+    <div id="deposit-modal" class="modal"><div class="modal-content"><span class="close-btn" onclick="closeModal('deposit-modal')">&times;</span><h2>Select Deposit Amount</h2><div class="settings-list" style="margin-top:15px;"><div class="settings-item" onclick="openStripeCheckout(10)">$10</div><div class="settings-item" onclick="openStripeCheckout(50)">$50</div><div class="settings-item" onclick="openStripeCheckout(100)">$100</div><div class="settings-item" onclick="openStripeCheckout(500)">$500</div><div class="settings-item" onclick="openStripeCheckout(1000)">$1000</div><div class="settings-item" onclick="openStripeCheckout(5000)">$5000</div></div></div></div>
+    <div id="stripe-modal" class="modal"><div class="modal-content" style="background: #ffffff; color: #1a202c;"><span class="close-btn" onclick="closeModal('stripe-modal')" style="color: #64748b;">&times;</span><div style="text-align: center; margin-bottom: 20px;"><h2 style="font-size: 18px; color: #1a202c;">Pay with Card</h2><p style="font-size: 24px; font-weight: bold; color: #22c55e; margin-top: 5px;" id="stripe-amount-display">$0.00</p></div><input type="email" placeholder="Email" style="width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc; font-size: 14px;"><input type="text" placeholder="Card Number" maxlength="16" style="width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc; font-size: 14px;"><div style="display: flex; gap: 10px; margin-bottom: 20px;"><input type="text" placeholder="MM / YY" maxlength="5" style="flex: 1; padding: 12px; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc; font-size: 14px;"><input type="text" placeholder="CVC" maxlength="3" style="flex: 1; padding: 12px; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc; font-size: 14px;"></div><button id="stripe-pay-btn" onclick="processStripePayment()" style="width: 100%; padding: 14px; background: #2563eb; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">Pay</button></div></div>
+    <div id="withdraw-modal" class="modal"><div class="modal-content"><span class="close-btn" onclick="closeModal('withdraw-modal')">&times;</span><h2>Withdraw Funds</h2><p style="font-size: 12px; color: #94a3b8; margin-bottom: 15px;">Minimum withdrawal: $5,000</p><div style="margin-bottom: 15px;"><label style="font-size: 12px; color: #94a3b8;">Select Network</label><select id="crypto-network" style="width: 100%; padding: 12px; background: #0b1120; border: 1px solid #1e293b; color: white; border-radius: 8px; margin-top: 5px; outline: none;"><option value="USDT_TRC20">USDT (TRC20)</option><option value="USDT_ERC20">USDT (ERC20)</option><option value="BTC">Bitcoin (BTC)</option><option value="ETH">Ethereum (ETH)</option></select></div><div style="margin-bottom: 15px;"><label style="font-size: 12px; color: #94a3b8;">Wallet Address</label><input type="text" id="crypto-address" placeholder="Enter wallet address" style="width: 100%; padding: 12px; background: #0b1120; border: 1px solid #1e293b; color: white; border-radius: 8px; margin-top: 5px; outline: none;"></div><div style="margin-bottom: 20px;"><label style="font-size: 12px; color: #94a3b8;">Amount ($)</label><input type="number" id="crypto-amount" placeholder="Min $5000" style="width: 100%; padding: 12px; background: #0b1120; border: 1px solid #1e293b; color: white; border-radius: 8px; margin-top: 5px; outline: none;"></div><button id="withdraw-btn" onclick="processWithdrawal()" style="width: 100%; padding: 14px; background: #ef4444; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">Confirm Withdrawal</button></div></div>
+    <div id="wallet-modal" class="modal"><div class="modal-content"><span class="close-btn" onclick="closeModal('wallet-modal')">&times;</span><h2>My Wallet</h2><div class="wallet-balance-display"><p>Available Balance</p><h3 id="wallet-balance-text">$0.00</h3></div><div style="background: #0b1120; border-radius: 8px; padding: 10px; max-height: 150px; overflow-y: auto;"><div id="wallet-ledger"></div></div></div></div>
 
     <script src="app.js"></script>
 </body>
