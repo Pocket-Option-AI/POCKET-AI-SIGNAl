@@ -24,6 +24,44 @@ let candleData = [];
 let tickerInterval = null;
 let marketInterval = null;
 
+// --- TRADER PROFILE LOGIC ---
+function openTraderProfile(name, profit, winRate, totalTrades) {
+    document.getElementById('trader-name').innerText = name;
+    document.getElementById('trader-profit').innerText = "+$" + profit.toLocaleString();
+    document.getElementById('trader-winrate').innerText = winRate + "%";
+    document.getElementById('trader-trades').innerText = totalTrades;
+    
+    let recentTradesDiv = document.getElementById('trader-recent-trades');
+    recentTradesDiv.innerHTML = '';
+    
+    const pairs = ["EUR/USD", "GBP/USD", "USD/JPY", "AED/CNY OTC"];
+    const directions = ["BUY", "SELL"];
+    
+    for (let i = 0; i < 5; i++) {
+        let pair = pairs[Math.floor(Math.random() * pairs.length)];
+        let dir = directions[Math.floor(Math.random() * directions.length)];
+        let amount = (Math.random() * 100 + 10).toFixed(2);
+        
+        recentTradesDiv.innerHTML += `
+            <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #1e293b; font-size: 12px;">
+                <div>
+                    <span style="color: white;">${pair}</span> <span style="color: #94a3b8;">(${dir})</span>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <span style="color: #94a3b8;">$${amount}</span>
+                    <span style="color: #22c55e; font-weight: bold;">WIN</span>
+                </div>
+            </div>
+        `;
+    }
+    
+    document.getElementById('trader-profile').classList.add('open');
+}
+
+function closeTraderProfile() {
+    document.getElementById('trader-profile').classList.remove('open');
+}
+
 // --- MENU TOGGLES ---
 function toggleProfile() { 
     document.getElementById('profile-menu').classList.toggle('open'); 
@@ -48,7 +86,6 @@ async function fetchActivities() {
                 list.innerHTML = '<p style="color: #64748b; text-align: center; font-size: 13px;">No recent activity.</p>';
                 return;
             }
-            
             list.innerHTML = '';
             data.activities.forEach(act => {
                 list.innerHTML += `
@@ -72,7 +109,6 @@ async function fetchTodayStats() {
     if (!state.userId) return;
     let accountTypeEl = document.getElementById('account-type');
     let accountType = accountTypeEl ? accountTypeEl.value : 'demo';
-    
     try {
         const res = await fetch(`/api/today-stats/${state.userId}/${accountType}`);
         const data = await res.json();
@@ -94,7 +130,6 @@ function fetchMarketData() {
         { pair: 'USD/JPY', flag: '🇺🇸', price: 150.500, change: (Math.random() * 2 - 1) },
         { pair: 'AED/CNY OTC', flag: '🇦🇪', price: 1.72500, change: (Math.random() * 2 - 1) }
     ];
-    
     if (state.currentPair === 'EUR/USD') marketData[0].price = currentPrice;
     
     let marketList = document.getElementById('market-list');
@@ -141,7 +176,6 @@ async function fetchProgressStats() {
             
             let chartDiv = document.getElementById('prog-chart');
             chartDiv.innerHTML = '';
-            
             let maxProfit = Math.max(...data.last7Days.map(d => Math.abs(d.profit)), 10);
             
             data.last7Days.forEach(day => {
@@ -176,14 +210,12 @@ async function fetchFinanceLedger() {
                 ledgerList.innerHTML = '<p style="color: #64748b; text-align: center; font-size: 13px;">No transactions yet.</p>';
                 return;
             }
-            
             ledgerList.innerHTML = '';
             data.ledger.forEach(tx => {
                 let isPositive = (tx.type === 'trade' && tx.status === 'WIN') || (tx.type === 'deposit');
                 let color = isPositive ? '#22c55e' : '#ef4444';
                 let sign = isPositive ? '+' : '-';
                 let displayAmount = tx.type === 'trade' ? (tx.status === 'WIN' ? (tx.amount * 1.92).toFixed(2) : tx.amount.toFixed(2)) : tx.amount.toFixed(2);
-                
                 let title = tx.type === 'trade' ? `Trade: ${tx.title}` : tx.title;
                 let statusText = tx.type === 'trade' ? tx.status : tx.status;
                 
@@ -213,15 +245,12 @@ function toggleAssetMenu() {
 function changeAsset(pair, basePrice, payout) {
     state.currentPair = pair;
     currentPrice = basePrice;
-    
     document.getElementById('selected-asset-name').innerText = pair;
     document.getElementById('current-pair-name').innerText = pair;
     document.getElementById('current-price-display').innerText = basePrice.toFixed(pair === 'USD/JPY' ? 3 : 5);
-    
     toggleAssetMenu();
     closeModal('market-modal');
     initChart(); 
-    
     document.querySelector('.profit-info').innerHTML = `<span>Payout: <strong>+${payout}%</strong></span><span>Profit: <strong id="potential-profit">+$${(1 * (payout/100)).toFixed(2)}</strong></span>`;
 }
 
@@ -232,18 +261,14 @@ function startLiveTicker() {
     tickerInterval = setInterval(() => {
         let tickerEl = document.getElementById('live-ticker');
         if (!tickerEl) return;
-        
         tickerEl.style.transition = 'none';
         tickerEl.style.right = '-100%';
-        
         let user = fakeUsers[Math.floor(Math.random() * fakeUsers.length)];
         let amount = (Math.random() * 500 + 10).toFixed(2);
         let pair = Math.random() > 0.5 ? "EUR/USD" : "AED/CNY";
         let direction = Math.random() > 0.5 ? "BUY" : "SELL";
         let color = direction === "BUY" ? "#22c55e" : "#ef4444";
-        
         tickerEl.innerHTML = `👤 ${user} won <span style="color: #fff;">$${amount}</span> on ${pair} (${direction}) <span style="color: ${color};">●</span>`;
-        
         setTimeout(() => {
             tickerEl.style.transition = 'right 4s linear';
             tickerEl.style.right = '100%';
@@ -256,7 +281,6 @@ function setChartType(type) {
     chartType = type;
     let lineBtn = document.getElementById('btn-line');
     let candleBtn = document.getElementById('btn-candle');
-    
     if (type === 'line') {
         lineBtn.style.background = '#3b82f6'; lineBtn.style.color = 'white';
         candleBtn.style.background = 'transparent'; candleBtn.style.color = '#94a3b8';
@@ -345,14 +369,11 @@ async function loadHistory() {
 function updateBalanceDisplay() {
     let accountTypeEl = document.getElementById('account-type');
     if (accountTypeEl) state.account = accountTypeEl.value;
-    
     let balance = state.balances[state.account] || 0;
     let headerBal = document.getElementById('display-balance');
     if (headerBal) headerBal.innerText = "$" + balance.toFixed(2);
-    
     let profileBal = document.getElementById('profile-balance-text');
     if (profileBal) profileBal.innerText = "$" + balance.toFixed(2);
-    
     let walletText = document.getElementById('wallet-balance-text');
     if (walletText) walletText.innerText = "$" + balance.toFixed(2);
 }
@@ -362,25 +383,15 @@ async function placeTrade(direction) {
     let amount = parseFloat(document.getElementById('trade-amount').value);
     let expirySeconds = parseInt(document.getElementById('trade-expiry').value);
     let pair = state.currentPair;
-    
     if (isNaN(amount) || amount <= 0) { alert("Please enter a valid amount."); return; }
     if (amount > state.balances[state.account]) { alert("Insufficient balance."); return; }
 
     state.balances[state.account] -= amount;
     updateBalanceDisplay();
 
-    let trade = {
-        id: Date.now(), pair, direction, amount,
-        entryPrice: currentPrice, expiry: expirySeconds,
-        status: 'OPEN', result: null, startTime: Date.now() 
-    };
-
+    let trade = { id: Date.now(), pair, direction, amount, entryPrice: currentPrice, expiry: expirySeconds, status: 'OPEN', result: null, startTime: Date.now() };
     state.activeTrades.push(trade);
-    chartTags.push({
-        type: 'entry', tradeId: trade.id, price: currentPrice,
-        direction, amount, expiry: Date.now() + (expirySeconds * 1000)
-    });
-
+    chartTags.push({ type: 'entry', tradeId: trade.id, price: currentPrice, direction, amount, expiry: Date.now() + (expirySeconds * 1000) });
     renderHistory();
 
     try {
@@ -389,7 +400,6 @@ async function placeTrade(direction) {
             body: JSON.stringify({ userId: state.userId, accountType: state.account, amount: amount, tradeData: { pair, direction, entryPrice: currentPrice, expiry: expirySeconds } })
         });
     } catch (e) { console.error(e); }
-
     setTimeout(() => { closeTrade(trade.id); }, expirySeconds * 1000);
 }
 
@@ -402,37 +412,26 @@ function tradeFromModal(direction) {
 async function closeTrade(tradeId) {
     let tradeIndex = state.activeTrades.findIndex(t => t.id === tradeId);
     if (tradeIndex === -1) return;
-    
     let trade = state.activeTrades[tradeIndex];
     let exitPrice = currentPrice;
-    
     chartTags = chartTags.filter(tag => tag.tradeId !== tradeId);
 
     try {
         const res = await fetch('/api/close-trade', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                userId: state.userId, accountType: state.account, tradeId: trade.id, 
-                amount: trade.amount, direction: trade.direction,
-                entryPrice: trade.entryPrice, exitPrice: exitPrice, pair: trade.pair
-            })
+            body: JSON.stringify({ userId: state.userId, accountType: state.account, tradeId: trade.id, amount: trade.amount, direction: trade.direction, entryPrice: trade.entryPrice, exitPrice: exitPrice, pair: trade.pair })
         });
         const data = await res.json();
-
         if (data.success) {
             let payout = data.payout;
             let isWin = data.result === 'WIN';
-
             state.balances[state.account] += payout;
             updateBalanceDisplay();
-
             trade.status = 'CLOSED';
             trade.result = data.result;
-            
             state.history.unshift(trade);
             state.activeTrades.splice(tradeIndex, 1);
             renderHistory();
-
             if (isWin) {
                 chartTags.push({ type: 'profit', price: exitPrice, amount: payout - trade.amount, time: Date.now() });
             }
@@ -460,30 +459,24 @@ function renderHistory() {
 function renderWalletLedger() {
     let ledgerDiv = document.getElementById('wallet-ledger');
     if (!ledgerDiv) return;
-    
     if (state.history.length === 0) {
         ledgerDiv.innerHTML = '<p style="color: #64748b; text-align: center; font-size: 13px;">No recent transactions.</p>';
         return;
     }
-    
     ledgerDiv.innerHTML = '';
     state.history.forEach(t => {
         let isWin = t.result === 'WIN';
         let color = isWin ? '#22c55e' : '#ef4444';
         let sign = isWin ? '+' : '-';
         let amount = isWin ? (t.amount * 0.92).toFixed(2) : t.amount.toFixed(2);
-        
         ledgerDiv.innerHTML += `
             <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #1e293b; font-size: 12px;">
                 <div>
                     <span style="color: white;">${t.pair} ${t.direction}</span><br>
                     <span style="color: #64748b; font-size: 10px;">${new Date(t.timestamp).toLocaleString()}</span>
                 </div>
-                <div style="color: ${color}; font-weight: bold; text-align: right;">
-                    ${sign}$${amount}
-                </div>
-            </div>
-        `;
+                <div style="color: ${color}; font-weight: bold; text-align: right;">${sign}$${amount}</div>
+            </div>`;
     });
 }
 
@@ -498,10 +491,7 @@ window.addEventListener('resize', resizeCanvas);
 function initChart() {
     resizeCanvas(); prices = []; timestamps = []; candleData = [];
     let now = Date.now();
-    for (let i = 0; i < maxPoints; i++) { 
-        prices.push(currentPrice); 
-        timestamps.push(now - ((maxPoints - i) * 1000)); 
-    }
+    for (let i = 0; i < maxPoints; i++) { prices.push(currentPrice); timestamps.push(now - ((maxPoints - i) * 1000)); }
 }
 
 function startChartEngine() {
@@ -525,7 +515,6 @@ function startChartEngine() {
             let volatility = state.currentPair === 'USD/JPY' ? 0.015 : 0.00015;
             let change = (Math.random() - 0.5) * volatility * 3; 
             currentPrice += change;
-            
             let decimals = state.currentPair === 'USD/JPY' ? 3 : 5;
             let priceDisplay = document.getElementById('current-price-display');
             if (priceDisplay) priceDisplay.innerText = currentPrice.toFixed(decimals);
@@ -534,20 +523,15 @@ function startChartEngine() {
     }
 
     scrollInterval = setInterval(() => {
-        prices.push(currentPrice); 
-        timestamps.push(Date.now());
+        prices.push(currentPrice); timestamps.push(Date.now());
         if (prices.length > maxPoints) { prices.shift(); timestamps.shift(); }
-        
         if (prices.length % 5 === 0) {
             let last5 = prices.slice(-5);
-            let open = last5[0];
-            let close = last5[last5.length - 1];
-            let high = Math.max(...last5);
-            let low = Math.min(...last5);
+            let open = last5[0]; let close = last5[last5.length - 1];
+            let high = Math.max(...last5); let low = Math.min(...last5);
             candleData.push({ open, close, high, low, isUp: close >= open });
             if (candleData.length > 20) candleData.shift();
         }
-        
         let decimals = state.currentPair === 'USD/JPY' ? 3 : 5;
         document.getElementById('live-price').innerText = `Active: ${state.activeTrades.length} | Price: ${currentPrice.toFixed(decimals)}`;
     }, 500); 
@@ -560,14 +544,12 @@ function updateLiveSlider(price) {
     let sliderEl = document.getElementById('payout-slider');
     let greenLabel = document.getElementById('green-percent');
     let redLabel = document.getElementById('red-percent');
-    
     if (sliderEl && greenLabel && redLabel) {
         let currentPercent = parseFloat(sliderEl.value) || 9;
         if (price > lastSliderPrice) currentPercent += (Math.random() * 0.5); 
         else if (price < lastSliderPrice) currentPercent -= (Math.random() * 0.5); 
         if (currentPercent > 95) currentPercent = 95;
         if (currentPercent < 5) currentPercent = 5;
-        
         sliderEl.value = currentPercent;
         greenLabel.innerText = Math.floor(currentPercent) + "%";
         redLabel.innerText = Math.floor(100 - currentPercent) + "%";
@@ -579,7 +561,6 @@ function updateLiveSlider(price) {
 function drawChart() {
     if (!isChartRunning) return;
     ctx.clearRect(0, 0, width, height + 20);
-    
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)'; ctx.lineWidth = 1;
     for (let x = 0; x < width; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke(); }
     for (let y = 0; y < height; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke(); }
@@ -602,7 +583,6 @@ function drawChart() {
         ctx.beginPath(); ctx.moveTo(0, height); 
         for (let i = 0; i < prices.length; i++) ctx.lineTo(i * stepX, getY(prices[i]));
         ctx.lineTo(width, height); ctx.fillStyle = gradient; ctx.fill();
-
         ctx.beginPath(); ctx.strokeStyle = '#60a5fa'; ctx.lineWidth = 1.5; ctx.lineJoin = 'miter'; ctx.miterLimit = 0; 
         for (let i = 0; i < prices.length; i++) {
             if (i === 0) ctx.moveTo(i * stepX, getY(prices[i]));
@@ -627,13 +607,11 @@ function drawChart() {
     let lastPrice = prices[prices.length - 1];
     let lastX = chartType === 'line' ? (prices.length - 1) * (width / (maxPoints - 1)) : width - 10;
     let lastY = getY(lastPrice);
-
     ctx.beginPath(); ctx.strokeStyle = 'rgba(96, 165, 250, 0.4)'; ctx.setLineDash([4, 4]);
     ctx.moveTo(0, lastY); ctx.lineTo(width, lastY); ctx.stroke(); ctx.setLineDash([]); 
     ctx.beginPath(); ctx.fillStyle = '#60a5fa'; ctx.arc(lastX, lastY, 3, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = 'rgba(59, 130, 246, 0.8)'; ctx.fillRect(width - 65, lastY - 10, 65, 20);
     ctx.fillStyle = 'white'; ctx.font = 'bold 11px Arial'; ctx.fillText(lastPrice.toFixed(state.currentPair === 'USD/JPY' ? 3 : 5), width - 60, lastY + 4);
-
     ctx.fillStyle = '#64748b'; ctx.font = '10px Arial';
     let steps = 5;
     for (let i = 0; i <= steps; i++) {
@@ -764,14 +742,11 @@ function sendChatMessage() {
     let msg = input.value.trim();
     if (!msg) return;
     let chatBox = document.getElementById('chat-messages');
-
     chatBox.innerHTML += `<div style="background: #2b5278; color: white; padding: 10px 15px; border-radius: 12px; border-bottom-right-radius: 0; max-width: 85%; align-self: flex-end; font-size: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.2);">${msg}</div>`;
     input.value = ''; chatBox.scrollTop = chatBox.scrollHeight;
-
     let typingId = 'typing-' + Date.now();
     chatBox.innerHTML += `<div id="${typingId}" style="background: #182533; color: #708499; padding: 10px 15px; border-radius: 12px; border-bottom-left-radius: 0; max-width: 85%; align-self: flex-start; font-size: 13px; font-style: italic;">typing...</div>`;
     chatBox.scrollTop = chatBox.scrollHeight;
-
     setTimeout(() => {
         document.getElementById(typingId).remove();
         let reply = "I have forwarded your message to a human agent. Please wait a moment.";
@@ -780,7 +755,6 @@ function sendChatMessage() {
         else if (lowerMsg.includes("deposit") || lowerMsg.includes("money") || lowerMsg.includes("fund")) reply = "You can deposit funds by clicking the green Deposit button in your profile menu.";
         else if (lowerMsg.includes("trade") || lowerMsg.includes("win") || lowerMsg.includes("profit")) reply = "Our AI engine has a 98% win rate! Just place a trade and watch the magic.";
         else if (lowerMsg.includes("withdraw")) reply = "Withdrawals require KYC verification. Please contact support on Telegram for assistance.";
-
         chatBox.innerHTML += `<div style="background: #182533; color: white; padding: 10px 15px; border-radius: 12px; border-bottom-left-radius: 0; max-width: 85%; align-self: flex-start; font-size: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.2);">${reply}</div>`;
         chatBox.scrollTop = chatBox.scrollHeight;
     }, 1000);
@@ -816,11 +790,9 @@ function processWithdrawal() {
     let address = document.getElementById('crypto-address').value;
     let network = document.getElementById('crypto-network').value;
     let selectedAccount = document.getElementById('account-type').value;
-
     if (selectedAccount !== 'real') { alert("Please switch to the QT Real account to withdraw."); return; }
     if (!address || address.length < 10) { alert("Please enter a valid wallet address."); return; }
     if (isNaN(amount) || amount < 5000) { alert("Minimum withdrawal is $5,000."); return; }
-
     let btn = document.getElementById('withdraw-btn');
     btn.innerText = "Processing..."; btn.style.opacity = "0.7"; btn.style.cursor = "not-allowed";
     logTransaction('withdrawal', amount, `${network} Withdrawal`);
@@ -831,21 +803,17 @@ async function changePassword() {
     let currentPass = document.getElementById('current-pass').value;
     let newPass = document.getElementById('new-pass').value;
     let confirmPass = document.getElementById('confirm-pass').value;
-
     if (!currentPass || !newPass || !confirmPass) { alert("Please fill all fields."); return; }
     if (newPass !== confirmPass) { alert("New passwords do not match."); return; }
     if (newPass.length < 6) { alert("Password must be at least 6 characters."); return; }
-
     let btn = document.getElementById('change-pass-btn');
     btn.innerText = "Updating..."; btn.style.opacity = "0.7";
-
     try {
         const res = await fetch('/api/change-password', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId: state.userId, currentPassword: currentPass, newPassword: newPass })
         });
         const data = await res.json();
-
         if (data.success) {
             alert("✅ Password updated successfully!");
             document.getElementById('current-pass').value = '';
@@ -859,17 +827,14 @@ async function changePassword() {
 
 async function resetDemoBalance() {
     if (!confirm("Are you sure you want to reset your Demo balance to $50,000? Your trade history will be kept.")) return;
-
     let btn = document.getElementById('reset-demo-btn');
     btn.innerText = "Resetting..."; btn.style.opacity = "0.7";
-
     try {
         const res = await fetch('/api/reset-demo', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId: state.userId })
         });
         const data = await res.json();
-
         if (data.success) {
             alert("✅ Demo balance reset to $50,000!");
             state.balances.demo = 50000;
