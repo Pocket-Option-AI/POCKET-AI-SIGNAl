@@ -34,6 +34,39 @@ function toggleProfile() {
 function toggleSocial() { document.getElementById('social-menu').classList.toggle('open'); }
 function copyTrader(name) { alert(`✅ You are now copying ${name}. Trades will be mirrored to your account.`); }
 
+// --- FETCH ACTIVITIES ---
+async function fetchActivities() {
+    if (!state.userId) return;
+    let list = document.getElementById('activities-list');
+    list.innerHTML = '<p style="color: #64748b; text-align: center; font-size: 13px;">Loading...</p>';
+    
+    try {
+        const res = await fetch(`/api/activities/${state.userId}`);
+        const data = await res.json();
+        if (data.success) {
+            if (data.activities.length === 0) {
+                list.innerHTML = '<p style="color: #64748b; text-align: center; font-size: 13px;">No recent activity.</p>';
+                return;
+            }
+            
+            list.innerHTML = '';
+            data.activities.forEach(act => {
+                list.innerHTML += `
+                    <div style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #1e293b; font-size: 13px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 16px;">${act.icon}</span>
+                            <span style="color: white;">${act.action}</span>
+                        </div>
+                        <div style="color: #64748b; font-size: 10px; text-align: right;">
+                            ${new Date(act.timestamp).toLocaleString()}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+    } catch (e) { console.error(e); }
+}
+
 // --- TODAY'S STATS FETCH ---
 async function fetchTodayStats() {
     if (!state.userId) return;
@@ -654,6 +687,7 @@ function openModal(modalId) {
     if (modalId === 'wallet-modal') renderWalletLedger(); 
     if (modalId === 'finance-modal') fetchFinanceLedger();
     if (modalId === 'progress-modal') fetchProgressStats();
+    if (modalId === 'activities-modal') fetchActivities();
     if (modalId === 'market-modal') {
         fetchMarketData();
         if (marketInterval) clearInterval(marketInterval);
