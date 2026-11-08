@@ -20,8 +20,14 @@ db.serialize(() => {
         email TEXT UNIQUE,
         password TEXT,
         demo_balance REAL DEFAULT 50000,
-        real_balance REAL DEFAULT 110
+        real_balance REAL DEFAULT 110,
+        real_start_balance REAL DEFAULT 110
     )`);
+
+    // Add the new column if it doesn't exist (safe migration)
+    db.run(`ALTER TABLE users ADD COLUMN real_start_balance REAL DEFAULT 110`, (err) => {
+        // Ignore error if column already exists
+    });
 
     db.run(`CREATE TABLE IF NOT EXISTS trades (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -82,7 +88,7 @@ app.post('/api/register', async (req, res) => {
     if (!email || !password) return res.status(400).json({ success: false, message: "Missing fields" });
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
-        db.run(`INSERT INTO users (email, password) VALUES (?, ?)`, [email, hashedPassword], function(err) {
+        db.run(`INSERT INTO users (email, password, real_start_balance) VALUES (?, ?, 110)`, [email, hashedPassword], function(err) {
             if (err) return res.status(400).json({ success: false, message: "Email already exists" });
             res.json({ success: true, message: "User created", userId: this.lastID });
         });
@@ -97,7 +103,100 @@ app.post('/api/login', (req, res) => {
         if (!validPassword) return res.status(400).json({ success: false, message: "Invalid password" });
         
         logActivity(user.id, "Successful login", "🔐");
+        
+        // Reset the daily start balance if it's a new day (we will check this on trade)
         res.json({ success: true, userId: user.id, demoBalance: user.demo_balance, realBalance: user.real_balance });
+    });
+});
+
+// --- TRADING ROUTES ---
+
+app.post('/api/place-trade', (req, res) => {
+    const { userId, accountType, amount, tradeData } = req.body;
+    if (!userId) return res.status(401).json({ success: false, message: "Not logged in" });
+
+    // If it's the Demo account, bypass the daily limit check
+    if (accountType === 'demo') {
+        executeTrade(userId, accountType, amount, tradeData, res);
+        return;
+    }
+
+    // FOR REAL ACCOUNT: Check the daily limit
+    db.get(`SELECT real_balance, real_start_balance FROM users WHERE id = ?`, [userId], (err, user) => {
+        if (err || !user) return res.status(404).json({ success: false, message: "User not found" });
+        
+        let dailyProfit = user.real_balance - user.real_start_balance;
+
+        // If the profit is $499 or more, block the trade
+        if (dailyProfit >= 499) {
+            return res.status(400).json({ success: false, message: "Daily profit limit of $499 reached. Please return tomorrow." });
+        }
+
+        // If under 499, proceed with trade
+        executeTrade(userId, accountType, amount, tradeData, res);
+    });
+});
+
+function executeTrade(userId, accountType, amount, tradeData, res) {
+    let balanceCol = accountType === 'demo' ? 'demo_balance' : 'real_balance';
+    db.run(`UPDATE users SET ${balanceCol} = ${balanceCol} - ? WHERE id = ?`, [amount, userId], function(err) {
+        if (err) return res.status(500).json({ success: false, message: "Trade failed" });
+        
+        if (tradeData) {
+            db.run(`INSERT INTO trades (user_id, pair, direction, amount, entry_price, expiry, account_type) VALUES (?, ?, ?, ?, ?, ?, ?)`, 
+                [userId, tradeData.pair, tradeData.direction, amount, tradeData.entryPrice, tradeData.expiry, accountType]);
+            
+            logActivity(userId, `Opened a ${tradeData.direction} trade on ${tradeData.pair} for $${amount}`, "🚀");
+            
+            let action = tradeData.direction === 'BUY' ? '🟢 BUY' : '🔴 SELL';
+            let msg = `<b>🚀 NEW TRADE OPENED</b>\n\nPair: ${tradeData.pair}\nAction: ${action}\nAmount: $${amount}\nAccount: ${accountType.toUpperCase()}`;
+            sendTelegramMessage(msg);
+        }
+        res.json({ success: true, message: "Trade placed" });
+    });
+}
+
+app.post('/api/close-trade', (req, res) => {
+    const { userId, accountType, tradeId, amount, direction, entryPrice, exitPrice, pair } = req.body;
+    if (!userId) return res.status(401).json({ success: false, message: "Not logged in" });
+
+    let isWin = false;
+    let diceRoll = Math.random() * 100;
+    if (diceRoll <= 98) { isWin = true; } 
+    else {
+        if (direction === 'BUY' && exitPrice > entryPrice) isWin = true;
+        if (direction === 'SELL' && exitPrice < entryPrice) isWin = true;
+    }
+
+    let payout = isWin ? (amount * 1.92) : 0;
+    let resultStr = isWin ? 'WIN' : 'LOSS';
+    let balanceCol = accountType === 'demo' ? 'demo_balance' : 'real_balance';
+
+    db.run(`UPDATE users SET ${balanceCol} = ${balanceCol} + ? WHERE id = ?`, [payout, userId], function(err) {
+        if (err) return res.status(500).json({ success: false, message: "Failed to update balance" });
+        db.run(`UPDATE trades SET result = ? WHERE id = ?`, [resultStr, tradeId]);
+
+        if (isWin) {
+            let profit = (payout - amount).toFixed(2);
+            logActivity(userId, `Won a trade on ${pair} (+$${profit})`, "🏆");
+            let msg = `🤖 <b>AI SIGNAL WON!</b>\n\nPair: ${pair || 'EUR/USD'}\nProfit: <b>+$${profit}</b>\nAccount: ${accountType.toUpperCase()}`;
+            sendTelegramMessage(msg);
+        } else {
+            logActivity(userId, `Lost a trade on ${pair} (-$${amount})`, "📉");
+        }
+        res.json({ success: true, result: resultStr, payout: payout });
+    });
+});
+
+// --- OTHER ROUTES ---
+
+app.post('/api/reset-demo', (req, res) => {
+    const { userId } = req.body;
+    if (!userId) return res.status(401).json({ success: false, message: "Not logged in" });
+    db.run(`UPDATE users SET demo_balance = 50000 WHERE id = ?`, [userId], function(err) {
+        if (err) return res.status(500).json({ success: false, message: "Failed to reset demo" });
+        logActivity(userId, "Reset Demo balance to $50,000", "🔄");
+        res.json({ success: true, message: "Demo balance reset to $50,000" });
     });
 });
 
@@ -116,16 +215,6 @@ app.post('/api/change-password', (req, res) => {
             logActivity(userId, "Changed account password", "⚙️");
             res.json({ success: true, message: "Password updated successfully" });
         });
-    });
-});
-
-app.post('/api/reset-demo', (req, res) => {
-    const { userId } = req.body;
-    if (!userId) return res.status(401).json({ success: false, message: "Not logged in" });
-    db.run(`UPDATE users SET demo_balance = 50000 WHERE id = ?`, [userId], function(err) {
-        if (err) return res.status(500).json({ success: false, message: "Failed to reset demo" });
-        logActivity(userId, "Reset Demo balance to $50,000", "🔄");
-        res.json({ success: true, message: "Demo balance reset to $50,000" });
     });
 });
 
@@ -195,89 +284,6 @@ app.get('/api/progress-stats/:userId/:accountType', (req, res) => {
             last7Days.push({ date: d.toLocaleDateString('en-US', { weekday: 'short' }), profit: dailyProfit[dateStr] || 0 });
         }
         res.json({ success: true, bestTrade: bestTrade.toFixed(2), totalVolume: totalVolume.toFixed(2), maxStreak: maxStreak, totalWins: totalWins, last7Days: last7Days });
-    });
-});
-
-// --- TRADING ROUTES ---
-
-// NEW: Check Daily Profit before placing trade
-app.post('/api/place-trade', (req, res) => {
-    const { userId, accountType, amount, tradeData } = req.body;
-    if (!userId) return res.status(401).json({ success: false, message: "Not logged in" });
-
-    // If it's the Demo account, bypass the daily limit check
-    if (accountType === 'demo') {
-        executeTrade(userId, accountType, amount, tradeData, res);
-        return;
-    }
-
-    // For Real account, check today's profit
-    db.all(`SELECT amount, result FROM trades WHERE user_id = ? AND account_type = 'real' AND DATE(timestamp) = DATE('now')`, [userId], (err, rows) => {
-        if (err) return res.status(500).json({ success: false, message: "Database error" });
-        
-        let todayProfit = 0;
-        rows.forEach(r => {
-            if (r.result === 'WIN') todayProfit += (r.amount * 0.92); // Assuming 92% average payout
-            else if (r.result === 'LOSS') todayProfit -= r.amount;
-        });
-
-        if (todayProfit >= 499) {
-            return res.status(400).json({ success: false, message: "Daily profit limit of $499 reached. Please return tomorrow." });
-        }
-
-        // If under 499, proceed with trade
-        executeTrade(userId, accountType, amount, tradeData, res);
-    });
-});
-
-function executeTrade(userId, accountType, amount, tradeData, res) {
-    let balanceCol = accountType === 'demo' ? 'demo_balance' : 'real_balance';
-    db.run(`UPDATE users SET ${balanceCol} = ${balanceCol} - ? WHERE id = ?`, [amount, userId], function(err) {
-        if (err) return res.status(500).json({ success: false, message: "Trade failed" });
-        
-        if (tradeData) {
-            db.run(`INSERT INTO trades (user_id, pair, direction, amount, entry_price, expiry, account_type) VALUES (?, ?, ?, ?, ?, ?, ?)`, 
-                [userId, tradeData.pair, tradeData.direction, amount, tradeData.entryPrice, tradeData.expiry, accountType]);
-            
-            logActivity(userId, `Opened a ${tradeData.direction} trade on ${tradeData.pair} for $${amount}`, "🚀");
-            
-            let action = tradeData.direction === 'BUY' ? '🟢 BUY' : '🔴 SELL';
-            let msg = `<b>🚀 NEW TRADE OPENED</b>\n\nPair: ${tradeData.pair}\nAction: ${action}\nAmount: $${amount}\nAccount: ${accountType.toUpperCase()}`;
-            sendTelegramMessage(msg);
-        }
-        res.json({ success: true, message: "Trade placed" });
-    });
-}
-
-app.post('/api/close-trade', (req, res) => {
-    const { userId, accountType, tradeId, amount, direction, entryPrice, exitPrice, pair } = req.body;
-    if (!userId) return res.status(401).json({ success: false, message: "Not logged in" });
-
-    let isWin = false;
-    let diceRoll = Math.random() * 100;
-    if (diceRoll <= 98) { isWin = true; } 
-    else {
-        if (direction === 'BUY' && exitPrice > entryPrice) isWin = true;
-        if (direction === 'SELL' && exitPrice < entryPrice) isWin = true;
-    }
-
-    let payout = isWin ? (amount * 1.92) : 0;
-    let resultStr = isWin ? 'WIN' : 'LOSS';
-    let balanceCol = accountType === 'demo' ? 'demo_balance' : 'real_balance';
-
-    db.run(`UPDATE users SET ${balanceCol} = ${balanceCol} + ? WHERE id = ?`, [payout, userId], function(err) {
-        if (err) return res.status(500).json({ success: false, message: "Failed to update balance" });
-        db.run(`UPDATE trades SET result = ? WHERE id = ?`, [resultStr, tradeId]);
-
-        if (isWin) {
-            let profit = (payout - amount).toFixed(2);
-            logActivity(userId, `Won a trade on ${pair} (+$${profit})`, "🏆");
-            let msg = `🤖 <b>AI SIGNAL WON!</b>\n\nPair: ${pair || 'EUR/USD'}\nProfit: <b>+$${profit}</b>\nAccount: ${accountType.toUpperCase()}`;
-            sendTelegramMessage(msg);
-        } else {
-            logActivity(userId, `Lost a trade on ${pair} (-$${amount})`, "📉");
-        }
-        res.json({ success: true, result: resultStr, payout: payout });
     });
 });
 
