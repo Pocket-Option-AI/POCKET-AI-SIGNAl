@@ -35,6 +35,17 @@ db.serialize(() => {
         account_type TEXT,
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
+
+    // NEW TRANSACTIONS TABLE
+    db.run(`CREATE TABLE IF NOT EXISTS transactions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        type TEXT,
+        amount REAL,
+        details TEXT,
+        status TEXT,
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
 });
 
 // --- TELEGRAM CONFIGURATION ---
@@ -76,14 +87,12 @@ app.post('/api/login', (req, res) => {
     });
 });
 
-// --- NEW: CHANGE PASSWORD ROUTE ---
 app.post('/api/change-password', (req, res) => {
     const { userId, currentPassword, newPassword } = req.body;
     if (!userId || !currentPassword || !newPassword) return res.status(400).json({ success: false, message: "Missing fields" });
 
     db.get(`SELECT password FROM users WHERE id = ?`, [userId], async (err, user) => {
         if (err || !user) return res.status(404).json({ success: false, message: "User not found" });
-        
         const validPassword = await bcrypt.compare(currentPassword, user.password);
         if (!validPassword) return res.status(400).json({ success: false, message: "Current password is incorrect" });
 
@@ -95,14 +104,43 @@ app.post('/api/change-password', (req, res) => {
     });
 });
 
-// --- NEW: RESET DEMO ROUTE ---
 app.post('/api/reset-demo', (req, res) => {
     const { userId } = req.body;
     if (!userId) return res.status(401).json({ success: false, message: "Not logged in" });
-
     db.run(`UPDATE users SET demo_balance = 50000 WHERE id = ?`, [userId], function(err) {
         if (err) return res.status(500).json({ success: false, message: "Failed to reset demo" });
         res.json({ success: true, message: "Demo balance reset to $50,000" });
+    });
+});
+
+// --- NEW: LOG TRANSACTION (Stripe & Crypto) ---
+app.post('/api/log-transaction', (req, res) => {
+    const { userId, type, amount, details } = req.body;
+    if (!userId) return res.status(401).json({ success: false, message: "Not logged in" });
+
+    db.run(`INSERT INTO transactions (user_id, type, amount, details, status) VALUES (?, ?, ?, ?, 'Processing')`,
+        [userId, type, amount, details], function(err) {
+            if (err) return res.status(500).json({ success: false, message: "Failed to log transaction" });
+            res.json({ success: true, message: "Transaction logged" });
+        });
+});
+
+// --- NEW: FETCH FINANCE LEDGER ---
+app.get('/api/finance-ledger/:userId', (req, res) => {
+    const userId = req.params.userId;
+    
+    // We combine trades and transactions into one ledger
+    db.all(`SELECT id, pair as title, amount, result as status, timestamp, 'trade' as type FROM trades WHERE user_id = ?`, [userId], (err, trades) => {
+        if (err) return res.status(500).json({ success: false, message: "Failed to fetch ledger" });
+        
+        db.all(`SELECT id, details as title, amount, status, timestamp, type FROM transactions WHERE user_id = ?`, [userId], (err, txs) => {
+            if (err) return res.status(500).json({ success: false, message: "Failed to fetch ledger" });
+            
+            let allTransactions = [...trades, ...txs];
+            allTransactions.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            
+            res.json({ success: true, ledger: allTransactions });
+        });
     });
 });
 
@@ -133,9 +171,8 @@ app.post('/api/close-trade', (req, res) => {
 
     let isWin = false;
     let diceRoll = Math.random() * 100;
-    if (diceRoll <= 98) {
-        isWin = true; 
-    } else {
+    if (diceRoll <= 98) { isWin = true; } 
+    else {
         if (direction === 'BUY' && exitPrice > entryPrice) isWin = true;
         if (direction === 'SELL' && exitPrice < entryPrice) isWin = true;
     }
@@ -169,21 +206,17 @@ app.get('/api/trade-history/:userId', (req, res) => {
 app.get('/api/today-stats/:userId/:accountType', (req, res) => {
     const userId = req.params.userId;
     const accountType = req.params.accountType;
-    
     db.all(`SELECT amount, result FROM trades WHERE user_id = ? AND account_type = ? AND DATE(timestamp) = DATE('now')`, 
     [userId, accountType], (err, rows) => {
         if (err) return res.status(500).json({ success: false, message: "Failed to fetch stats" });
-        
         let totalTrades = rows.length;
         let wins = rows.filter(r => r.result === 'WIN').length;
         let winRate = totalTrades > 0 ? ((wins / totalTrades) * 100).toFixed(1) : 0;
-        
         let totalProfit = 0;
         rows.forEach(r => {
             if (r.result === 'WIN') totalProfit += (r.amount * 0.92);
             else if (r.result === 'LOSS') totalProfit -= r.amount;
         });
-
         res.json({ success: true, totalTrades, winRate, totalProfit: totalProfit.toFixed(2) });
     });
 });
