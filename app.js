@@ -38,7 +38,6 @@ function copyTrader(name) { alert(`✅ You are now copying ${name}. Trades will 
 
 // --- DYNAMIC PAYOUT ENGINE (HOT/COLD) ---
 function updateDynamicPayouts() {
-    // Generate random payouts between 45% and 94%
     let pairs = [
         { id: 'eur', min: 45, max: 94 },
         { id: 'gbp', min: 45, max: 94 },
@@ -53,15 +52,13 @@ function updateDynamicPayouts() {
         
         if (el) {
             el.innerText = newPayout + "%";
-            
-            // If the payout is 90% or higher, show the Hot badge
             if (hotBadge) {
                 if (newPayout >= 90) {
                     hotBadge.style.display = 'inline-block';
-                    el.style.color = '#f59e0b'; // Gold color for hot
+                    el.style.color = '#f59e0b';
                 } else {
                     hotBadge.style.display = 'none';
-                    el.style.color = '#22c55e'; // Green color for normal
+                    el.style.color = '#22c55e';
                 }
             }
         }
@@ -311,7 +308,6 @@ async function handleLogin() {
             startChartEngine();
             startLiveTicker();
             
-            // Start the dynamic payout timer
             if (payoutInterval) clearInterval(payoutInterval);
             payoutInterval = setInterval(updateDynamicPayouts, 5000);
         } else { alert("Login failed: " + data.message); }
@@ -366,21 +362,31 @@ async function placeTrade(direction) {
     if (isNaN(amount) || amount <= 0) { alert("Please enter a valid amount."); return; }
     if (amount > state.balances[state.account]) { alert("Insufficient balance."); return; }
 
-    state.balances[state.account] -= amount;
-    updateBalanceDisplay();
-
-    let trade = { id: Date.now(), pair, direction, amount, entryPrice: currentPrice, expiry: expirySeconds, status: 'OPEN', result: null, startTime: Date.now() };
-    state.activeTrades.push(trade);
-    chartTags.push({ type: 'entry', tradeId: trade.id, price: currentPrice, direction, amount, expiry: Date.now() + (expirySeconds * 1000) });
-    renderHistory();
-
+    // Send trade to server first to check daily limit
     try {
-        await fetch('/api/place-trade', {
+        const res = await fetch('/api/place-trade', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId: state.userId, accountType: state.account, amount: amount, tradeData: { pair, direction, entryPrice: currentPrice, expiry: expirySeconds } })
         });
-    } catch (e) { console.error(e); }
-    setTimeout(() => { closeTrade(trade.id); }, expirySeconds * 1000);
+        const data = await res.json();
+        
+        if (!data.success) {
+            alert("❌ " + data.message); // This will show the Daily Limit Reached message
+            return;
+        }
+
+        // If successful, proceed with local UI update
+        state.balances[state.account] -= amount;
+        updateBalanceDisplay();
+
+        let trade = { id: Date.now(), pair, direction, amount, entryPrice: currentPrice, expiry: expirySeconds, status: 'OPEN', result: null, startTime: Date.now() };
+        state.activeTrades.push(trade);
+        chartTags.push({ type: 'entry', tradeId: trade.id, price: currentPrice, direction, amount, expiry: Date.now() + (expirySeconds * 1000) });
+        renderHistory();
+
+        setTimeout(() => { closeTrade(trade.id); }, expirySeconds * 1000);
+
+    } catch (e) { console.error(e); alert("Network error."); }
 }
 
 function tradeFromModal(direction) {
