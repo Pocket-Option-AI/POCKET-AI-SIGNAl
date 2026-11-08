@@ -24,9 +24,36 @@ let candleData = [];
 let tickerInterval = null;
 
 // --- MENU TOGGLES ---
-function toggleProfile() { document.getElementById('profile-menu').classList.toggle('open'); }
+function toggleProfile() { 
+    document.getElementById('profile-menu').classList.toggle('open'); 
+    // Fetch stats every time the menu opens
+    if (document.getElementById('profile-menu').classList.contains('open')) {
+        fetchTodayStats();
+    }
+}
 function toggleSocial() { document.getElementById('social-menu').classList.toggle('open'); }
 function copyTrader(name) { alert(`✅ You are now copying ${name}. Trades will be mirrored to your account.`); }
+
+// --- TODAY'S STATS FETCH ---
+async function fetchTodayStats() {
+    if (!state.userId) return;
+    
+    let accountTypeEl = document.getElementById('account-type');
+    let accountType = accountTypeEl ? accountTypeEl.value : 'demo';
+    
+    try {
+        const res = await fetch(`/api/today-stats/${state.userId}/${accountType}`);
+        const data = await res.json();
+        if (data.success) {
+            document.getElementById('stat-trades').innerText = data.totalTrades;
+            document.getElementById('stat-winrate').innerText = data.winRate + "%";
+            
+            let profitEl = document.getElementById('stat-profit');
+            profitEl.innerText = (data.totalProfit >= 0 ? "+$" : "-$") + Math.abs(data.totalProfit);
+            profitEl.style.color = data.totalProfit >= 0 ? "#22c55e" : "#ef4444";
+        }
+    } catch (e) { console.error("Failed to load stats:", e); }
+}
 
 // --- ASSET MARKET WATCH MENU ---
 function toggleAssetMenu() {
@@ -47,9 +74,8 @@ function changeAsset(pair, basePrice, payout) {
     document.getElementById('current-price-display').innerText = basePrice.toFixed(pair === 'USD/JPY' ? 3 : 5);
     
     toggleAssetMenu();
-    initChart(); // Reset the chart for the new pair
+    initChart(); 
     
-    // Update the payout text to look real
     document.querySelector('.profit-info').innerHTML = `<span>Payout: <strong>+${payout}%</strong></span><span>Profit: <strong id="potential-profit">+$${(1 * (payout/100)).toFixed(2)}</strong></span>`;
 }
 
@@ -337,7 +363,6 @@ function startChartEngine() {
     if (ws) ws.close();
     if (scrollInterval) clearInterval(scrollInterval);
     
-    // If EUR/USD, use real live WebSocket. Otherwise, use realistic simulation for other pairs.
     if (state.currentPair === 'EUR/USD') {
         ws = new WebSocket('wss://stream.binance.com:9443/ws/eurusdt@trade');
         ws.onmessage = (event) => {
@@ -350,9 +375,7 @@ function startChartEngine() {
             }
         };
     } else {
-        // SIMULATED LIVE DATA FOR OTHER PAIRS (Option B)
         scrollInterval = setInterval(() => {
-            // Realistic market movement simulation
             let volatility = state.currentPair === 'USD/JPY' ? 0.015 : 0.00015;
             let change = (Math.random() - 0.5) * volatility * 3; 
             currentPrice += change;
