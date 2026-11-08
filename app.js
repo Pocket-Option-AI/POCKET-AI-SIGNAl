@@ -27,6 +27,40 @@ let marketInterval = null;
 let payoutInterval = null;
 let historyTimer = null;
 
+// --- CHECK FOR SAVED SESSION ON LOAD ---
+window.onload = function() {
+    let savedUserId = localStorage.getItem('pocketUserId');
+    if (savedUserId) {
+        // Show loading screen, hide auth
+        document.getElementById('loading-screen').style.display = 'flex';
+        document.getElementById('auth-screen').classList.remove('active');
+        
+        state.userId = savedUserId;
+        
+        // Load data and then show dashboard
+        setTimeout(async () => {
+            await loadUserData();
+            await loadHistory();
+            
+            document.getElementById('loading-screen').style.display = 'none';
+            document.getElementById('dashboard-screen').classList.add('active');
+            document.getElementById('app-body').classList.remove('light-mode');
+            
+            startChartEngine();
+            startLiveTicker();
+            
+            if (payoutInterval) clearInterval(payoutInterval);
+            payoutInterval = setInterval(updateDynamicPayouts, 5000);
+
+            if (historyTimer) clearInterval(historyTimer);
+            historyTimer = setInterval(() => {
+                renderHistory();
+                updateActiveTradeBar();
+            }, 1000);
+        }, 1000); // 1 second delay for the loading effect
+    }
+};
+
 // --- MENU TOGGLES ---
 function toggleProfile() { 
     document.getElementById('profile-menu').classList.toggle('open'); 
@@ -312,6 +346,10 @@ async function handleLogin() {
         const data = await res.json();
         if (data.success) {
             state.userId = data.userId;
+            
+            // SAVE SESSION
+            localStorage.setItem('pocketUserId', state.userId);
+            
             document.getElementById('auth-screen').classList.remove('active');
             document.getElementById('dashboard-screen').classList.add('active');
             document.getElementById('app-body').classList.remove('light-mode');
@@ -332,7 +370,12 @@ async function handleLogin() {
     } catch (e) { alert("Network error."); }
 }
 
-function logout() { state.userId = null; location.reload(); }
+function logout() { 
+    // CLEAR SESSION
+    localStorage.removeItem('pocketUserId');
+    state.userId = null; 
+    location.reload(); 
+}
 
 async function loadUserData() {
     if (!state.userId) return;
