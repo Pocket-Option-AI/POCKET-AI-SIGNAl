@@ -27,17 +27,26 @@ let marketInterval = null;
 let payoutInterval = null;
 let historyTimer = null;
 
+// --- CONNECT TELEGRAM FUNCTION (NEW) ---
+function connectTelegram() {
+    if (!state.userId) {
+        alert("Please log in first.");
+        return;
+    }
+    // Opens Telegram with your specific User ID
+    let telegramUrl = `https://t.me/PocketAIAlertsBot?start=${state.userId}`;
+    window.open(telegramUrl, '_blank');
+}
+
 // --- CHECK FOR SAVED SESSION ON LOAD ---
 window.onload = function() {
     let savedUserId = localStorage.getItem('pocketUserId');
     if (savedUserId) {
-        // Show loading screen, hide auth
         document.getElementById('loading-screen').style.display = 'flex';
         document.getElementById('auth-screen').classList.remove('active');
         
         state.userId = savedUserId;
         
-        // Load data and then show dashboard
         setTimeout(async () => {
             await loadUserData();
             await loadHistory();
@@ -57,7 +66,7 @@ window.onload = function() {
                 renderHistory();
                 updateActiveTradeBar();
             }, 1000);
-        }, 1000); // 1 second delay for the loading effect
+        }, 1000);
     }
 };
 
@@ -346,10 +355,7 @@ async function handleLogin() {
         const data = await res.json();
         if (data.success) {
             state.userId = data.userId;
-            
-            // SAVE SESSION
             localStorage.setItem('pocketUserId', state.userId);
-            
             document.getElementById('auth-screen').classList.remove('active');
             document.getElementById('dashboard-screen').classList.add('active');
             document.getElementById('app-body').classList.remove('light-mode');
@@ -371,7 +377,6 @@ async function handleLogin() {
 }
 
 function logout() { 
-    // CLEAR SESSION
     localStorage.removeItem('pocketUserId');
     state.userId = null; 
     location.reload(); 
@@ -426,7 +431,7 @@ function updateActiveTradeBar() {
     }
     
     bar.style.display = 'block';
-    let trade = state.activeTrades[0]; // Show the most recent active trade
+    let trade = state.activeTrades[0];
     let timeLeft = Math.max(0, Math.ceil((trade.startTime + (trade.expiry * 1000) - Date.now()) / 1000));
     
     document.getElementById('at-pair').innerText = trade.pair;
@@ -437,11 +442,9 @@ function updateActiveTradeBar() {
     
     document.getElementById('at-timer').innerText = `⏱ ${timeLeft}s`;
     
-    // Calculate live P/L
     let currentDiff = currentPrice - trade.entryPrice;
     let isWinning = (trade.direction === 'BUY' && currentDiff > 0) || (trade.direction === 'SELL' && currentDiff < 0);
     
-    // Use a simplified P/L estimate for the floating bar
     let plAmount = isWinning ? (trade.amount * 0.92) : -trade.amount;
     let plEl = document.getElementById('at-pl');
     plEl.innerText = (plAmount >= 0 ? "+$" : "-$") + Math.abs(plAmount).toFixed(2);
@@ -580,7 +583,6 @@ function startChartEngine() {
     if (ws) ws.close();
     if (scrollInterval) clearInterval(scrollInterval);
 
-    // Check if it's the weekend
     let day = new Date().getDay();
     let isWeekend = (day === 0 || day === 6);
     let useSimulated = (state.currentPair !== 'EUR/USD') || isWeekend;
