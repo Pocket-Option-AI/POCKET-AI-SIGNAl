@@ -249,7 +249,7 @@
             <div class="menu-item" onclick="alert('Coming Soon')"><span>📈 Your Progress</span> <span>></span></div>
             <div class="menu-item" onclick="alert('Coming Soon')"><span>📊 Today's Stats</span> <span>></span></div>
             <div class="menu-item" onclick="alert('Coming Soon')"><span>💼 Trading</span> <span>></span></div>
-            <div class="menu-item" onclick="alert('Coming Soon')"><span>💰 Finance</span> <span>></span></div>
+            <div class="menu-item" onclick="openModal('finance-modal')"><span>💰 Finance</span> <span>></span></div>
             <div class="menu-item" onclick="alert('Coming Soon')"><span>👤 Profile</span> <span>></span></div>
             <div class="menu-item" onclick="alert('Coming Soon')"><span>🌍 Market</span> <span>></span></div>
             <div class="menu-item" onclick="alert('Coming Soon')"><span>🎯 Activities</span> <span>></span></div>
@@ -262,7 +262,21 @@
         </div>
     </div>
 
-    <!-- NEW SETTINGS MODAL -->
+    <!-- NEW FINANCE MODAL -->
+    <div id="finance-modal" class="modal">
+        <div class="modal-content" style="padding-bottom: 0;">
+            <span class="close-btn" onclick="closeModal('finance-modal')">&times;</span>
+            <h2>Finance Ledger</h2>
+            <p style="font-size: 12px; color: #94a3b8; margin-bottom: 15px;">Your complete transaction history</p>
+            
+            <div style="background: #0b1120; border-radius: 8px; padding: 10px; max-height: 400px; overflow-y: auto; margin-bottom: 20px;">
+                <div id="finance-ledger-list">
+                    <p style="color: #64748b; text-align: center; font-size: 13px;">Loading transactions...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="settings-modal" class="modal">
         <div class="modal-content">
             <span class="close-btn" onclick="closeModal('settings-modal')">&times;</span>
