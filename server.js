@@ -45,7 +45,21 @@ db.serialize(() => {
         status TEXT,
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
+
+    // NEW ACTIVITIES TABLE
+    db.run(`CREATE TABLE IF NOT EXISTS activities (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        action TEXT,
+        icon TEXT,
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
 });
+
+// Helper to log activity
+function logActivity(userId, action, icon) {
+    db.run(`INSERT INTO activities (user_id, action, icon) VALUES (?, ?, ?)`, [userId, action, icon]);
+}
 
 // --- TELEGRAM CONFIGURATION ---
 const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
@@ -82,6 +96,8 @@ app.post('/api/login', (req, res) => {
         if (err || !user) return res.status(400).json({ success: false, message: "User not found" });
         const validPassword = await bcrypt.compare(password, user.password);
         if (!validPassword) return res.status(400).json({ success: false, message: "Invalid password" });
+        
+        logActivity(user.id, "Successful login", "🔐");
         res.json({ success: true, userId: user.id, demoBalance: user.demo_balance, realBalance: user.real_balance });
     });
 });
@@ -98,6 +114,7 @@ app.post('/api/change-password', (req, res) => {
         const hashedNewPassword = await bcrypt.hash(newPassword, 10);
         db.run(`UPDATE users SET password = ? WHERE id = ?`, [hashedNewPassword, userId], function(err) {
             if (err) return res.status(500).json({ success: false, message: "Failed to update password" });
+            logActivity(userId, "Changed account password", "⚙️");
             res.json({ success: true, message: "Password updated successfully" });
         });
     });
@@ -108,6 +125,7 @@ app.post('/api/reset-demo', (req, res) => {
     if (!userId) return res.status(401).json({ success: false, message: "Not logged in" });
     db.run(`UPDATE users SET demo_balance = 50000 WHERE id = ?`, [userId], function(err) {
         if (err) return res.status(500).json({ success: false, message: "Failed to reset demo" });
+        logActivity(userId, "Reset Demo balance to $50,000", "🔄");
         res.json({ success: true, message: "Demo balance reset to $50,000" });
     });
 });
@@ -119,8 +137,18 @@ app.post('/api/log-transaction', (req, res) => {
     db.run(`INSERT INTO transactions (user_id, type, amount, details, status) VALUES (?, ?, ?, ?, 'Processing')`,
         [userId, type, amount, details], function(err) {
             if (err) return res.status(500).json({ success: false, message: "Failed to log transaction" });
+            logActivity(userId, `Initiated ${type} of $${amount}`, type === 'deposit' ? '💳' : '🏧');
             res.json({ success: true, message: "Transaction logged" });
         });
+});
+
+// --- FETCH ACTIVITIES ---
+app.get('/api/activities/:userId', (req, res) => {
+    const userId = req.params.userId;
+    db.all(`SELECT * FROM activities WHERE user_id = ? ORDER BY timestamp DESC LIMIT 30`, [userId], (err, rows) => {
+        if (err) return res.status(500).json({ success: false, message: "Failed to fetch activities" });
+        res.json({ success: true, activities: rows });
+    });
 });
 
 // --- FETCH FINANCE LEDGER ---
@@ -137,7 +165,7 @@ app.get('/api/finance-ledger/:userId', (req, res) => {
     });
 });
 
-// --- NEW: FETCH PROGRESS STATS ---
+// --- FETCH PROGRESS STATS ---
 app.get('/api/progress-stats/:userId/:accountType', (req, res) => {
     const userId = req.params.userId;
     const accountType = req.params.accountType;
@@ -151,7 +179,6 @@ app.get('/api/progress-stats/:userId/:accountType', (req, res) => {
         let totalWins = 0;
         let currentStreak = 0;
         let maxStreak = 0;
-        
         let dailyProfit = {};
         
         rows.forEach(r => {
@@ -165,34 +192,21 @@ app.get('/api/progress-stats/:userId/:accountType', (req, res) => {
             } else if (r.result === 'LOSS') {
                 currentStreak = 0;
             }
-            
-            // Build 7-day chart data
             let dateStr = new Date(r.timestamp).toISOString().split('T')[0];
             if (!dailyProfit[dateStr]) dailyProfit[dateStr] = 0;
             if (r.result === 'WIN') dailyProfit[dateStr] += (r.amount * 0.92);
             else if (r.result === 'LOSS') dailyProfit[dateStr] -= r.amount;
         });
 
-        // Prepare last 7 days array
         let last7Days = [];
         for (let i = 6; i >= 0; i--) {
             let d = new Date();
             d.setDate(d.getDate() - i);
             let dateStr = d.toISOString().split('T')[0];
-            last7Days.push({ 
-                date: d.toLocaleDateString('en-US', { weekday: 'short' }), 
-                profit: dailyProfit[dateStr] || 0 
-            });
+            last7Days.push({ date: d.toLocaleDateString('en-US', { weekday: 'short' }), profit: dailyProfit[dateStr] || 0 });
         }
 
-        res.json({ 
-            success: true, 
-            bestTrade: bestTrade.toFixed(2), 
-            totalVolume: totalVolume.toFixed(2), 
-            maxStreak: maxStreak, 
-            totalWins: totalWins,
-            last7Days: last7Days
-        });
+        res.json({ success: true, bestTrade: bestTrade.toFixed(2), totalVolume: totalVolume.toFixed(2), maxStreak: maxStreak, totalWins: totalWins, last7Days: last7Days });
     });
 });
 
@@ -208,6 +222,8 @@ app.post('/api/place-trade', (req, res) => {
         if (tradeData) {
             db.run(`INSERT INTO trades (user_id, pair, direction, amount, entry_price, expiry, account_type) VALUES (?, ?, ?, ?, ?, ?, ?)`, 
                 [userId, tradeData.pair, tradeData.direction, amount, tradeData.entryPrice, tradeData.expiry, accountType]);
+            
+            logActivity(userId, `Opened a ${tradeData.direction} trade on ${tradeData.pair} for $${amount}`, "🚀");
             
             let action = tradeData.direction === 'BUY' ? '🟢 BUY' : '🔴 SELL';
             let msg = `<b>🚀 NEW TRADE OPENED</b>\n\nPair: ${tradeData.pair}\nAction: ${action}\nAmount: $${amount}\nAccount: ${accountType.toUpperCase()}`;
@@ -239,8 +255,11 @@ app.post('/api/close-trade', (req, res) => {
 
         if (isWin) {
             let profit = (payout - amount).toFixed(2);
+            logActivity(userId, `Won a trade on ${pair} (+$${profit})`, "🏆");
             let msg = `🤖 <b>AI SIGNAL WON!</b>\n\nPair: ${pair || 'EUR/USD'}\nProfit: <b>+$${profit}</b>\nAccount: ${accountType.toUpperCase()}`;
             sendTelegramMessage(msg);
+        } else {
+            logActivity(userId, `Lost a trade on ${pair} (-$${amount})`, "📉");
         }
         res.json({ success: true, result: resultStr, payout: payout });
     });
