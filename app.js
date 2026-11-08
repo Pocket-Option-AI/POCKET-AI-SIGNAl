@@ -18,8 +18,8 @@ let isChartRunning = false;
 let chartTags = []; 
 let ws = null; 
 let scrollInterval = null;
-let chartType = 'line'; // NEW: 'line' or 'candle'
-let candleData = []; // NEW: holds grouped candles
+let chartType = 'line'; 
+let candleData = []; 
 
 // --- MENU TOGGLES ---
 function toggleProfile() { document.getElementById('profile-menu').classList.toggle('open'); }
@@ -29,7 +29,6 @@ function copyTrader(name) { alert(`✅ You are now copying ${name}. Trades will 
 // --- CHART TYPE TOGGLE ---
 function setChartType(type) {
     chartType = type;
-    
     let lineBtn = document.getElementById('btn-line');
     let candleBtn = document.getElementById('btn-candle');
     
@@ -87,6 +86,7 @@ async function handleLogin() {
             document.getElementById('dashboard-screen').classList.add('active');
             document.getElementById('app-body').classList.remove('light-mode');
             loadUserData();
+            loadHistory();
             startChartEngine();
         } else { alert("Login failed: " + data.message); }
     } catch (e) { alert("Network error."); }
@@ -105,6 +105,20 @@ async function loadUserData() {
             updateBalanceDisplay();
         }
     } catch (e) { console.error(e); }
+}
+
+// NEW: LOAD PERMANENT TRADE HISTORY
+async function loadHistory() {
+    if (!state.userId) return;
+    try {
+        const res = await fetch(`/api/trade-history/${state.userId}`);
+        const data = await res.json();
+        if (data.success) {
+            state.history = data.history;
+            renderHistory();
+            renderWalletLedger();
+        }
+    } catch (e) { console.error("Failed to load history:", e); }
 }
 
 function updateBalanceDisplay() {
@@ -222,6 +236,37 @@ function renderHistory() {
     });
 }
 
+// NEW: RENDER WALLET LEDGER
+function renderWalletLedger() {
+    let ledgerDiv = document.getElementById('wallet-ledger');
+    if (!ledgerDiv) return;
+    
+    if (state.history.length === 0) {
+        ledgerDiv.innerHTML = '<p style="color: #64748b; text-align: center; font-size: 13px;">No recent transactions.</p>';
+        return;
+    }
+    
+    ledgerDiv.innerHTML = '';
+    state.history.forEach(t => {
+        let isWin = t.result === 'WIN';
+        let color = isWin ? '#22c55e' : '#ef4444';
+        let sign = isWin ? '+' : '-';
+        let amount = isWin ? (t.amount * 0.92).toFixed(2) : t.amount.toFixed(2);
+        
+        ledgerDiv.innerHTML += `
+            <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #1e293b; font-size: 12px;">
+                <div>
+                    <span style="color: white;">${t.pair} ${t.direction}</span><br>
+                    <span style="color: #64748b; font-size: 10px;">${new Date(t.timestamp).toLocaleString()}</span>
+                </div>
+                <div style="color: ${color}; font-weight: bold; text-align: right;">
+                    ${sign}$${amount}
+                </div>
+            </div>
+        `;
+    });
+}
+
 // --- CHART ENGINE ---
 function resizeCanvas() {
     const rect = canvas.parentElement.getBoundingClientRect();
@@ -233,8 +278,6 @@ window.addEventListener('resize', resizeCanvas);
 function initChart() {
     resizeCanvas(); prices = []; timestamps = []; candleData = [];
     let now = Date.now();
-    
-    // Generate initial flat prices so line looks full
     for (let i = 0; i < maxPoints; i++) { 
         prices.push(currentPrice); 
         timestamps.push(now - ((maxPoints - i) * 1000)); 
@@ -243,7 +286,6 @@ function initChart() {
 
 function startChartEngine() {
     initChart(); isChartRunning = true;
-    
     if (ws) ws.close();
     if (scrollInterval) clearInterval(scrollInterval);
     
@@ -259,14 +301,11 @@ function startChartEngine() {
         }
     };
 
-    // This timer updates the visual chart
     scrollInterval = setInterval(() => {
         prices.push(currentPrice); 
         timestamps.push(Date.now());
-        
         if (prices.length > maxPoints) { prices.shift(); timestamps.shift(); }
         
-        // Candle Logic (Group every 5 ticks into 1 candle)
         if (prices.length % 5 === 0) {
             let last5 = prices.slice(-5);
             let open = last5[0];
@@ -274,16 +313,14 @@ function startChartEngine() {
             let high = Math.max(...last5);
             let low = Math.min(...last5);
             candleData.push({ open, close, high, low, isUp: close >= open });
-            if (candleData.length > 20) candleData.shift(); // Keep only 20 candles on screen
+            if (candleData.length > 20) candleData.shift();
         }
-        
         document.getElementById('live-price').innerText = `Active: ${state.activeTrades.length} | Price: ${currentPrice.toFixed(5)}`;
     }, 500); 
 
     if (prices.length > 0) requestAnimationFrame(drawChart);
 }
 
-// --- LIVE SLIDER ANIMATION ---
 let lastSliderPrice = currentPrice;
 function updateLiveSlider(price) {
     let sliderEl = document.getElementById('payout-slider');
@@ -294,7 +331,6 @@ function updateLiveSlider(price) {
         let currentPercent = parseFloat(sliderEl.value) || 9;
         if (price > lastSliderPrice) currentPercent += (Math.random() * 0.5); 
         else if (price < lastSliderPrice) currentPercent -= (Math.random() * 0.5); 
-        
         if (currentPercent > 95) currentPercent = 95;
         if (currentPercent < 5) currentPercent = 5;
         
@@ -302,7 +338,6 @@ function updateLiveSlider(price) {
         greenLabel.innerText = Math.floor(currentPercent) + "%";
         redLabel.innerText = Math.floor(100 - currentPercent) + "%";
         sliderEl.style.background = `linear-gradient(to right, #22c55e ${currentPercent}%, #ef4444 ${currentPercent}%)`;
-        
         lastSliderPrice = price;
     }
 }
@@ -311,18 +346,12 @@ function drawChart() {
     if (!isChartRunning) return;
     ctx.clearRect(0, 0, width, height + 20);
     
-    // Grid
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)'; ctx.lineWidth = 1;
     for (let x = 0; x < width; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke(); }
     for (let y = 0; y < height; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke(); }
-    
     if (prices.length === 0) { requestAnimationFrame(drawChart); return; }
 
-    // Price Mapping
-    let allPrices = chartType === 'candle' && candleData.length > 0 
-        ? candleData.flatMap(c => [c.high, c.low]) 
-        : prices;
-        
+    let allPrices = chartType === 'candle' && candleData.length > 0 ? candleData.flatMap(c => [c.high, c.low]) : prices;
     let minPrice = Math.min(...allPrices), maxPrice = Math.max(...allPrices);
     let priceRange = maxPrice - minPrice;
     if (priceRange === 0) priceRange = 0.001;
@@ -332,10 +361,7 @@ function drawChart() {
     function getY(price) { return height - ((price - minPrice) / adjustedRange * height); }
 
     if (chartType === 'line') {
-        // DRAW LINE CHART
         let stepX = width / (maxPoints - 1);
-
-        // Gradient
         let gradient = ctx.createLinearGradient(0, 0, 0, height);
         gradient.addColorStop(0, 'rgba(96, 165, 250, 0.3)'); 
         gradient.addColorStop(1, 'rgba(15, 23, 42, 0)');
@@ -343,106 +369,65 @@ function drawChart() {
         for (let i = 0; i < prices.length; i++) ctx.lineTo(i * stepX, getY(prices[i]));
         ctx.lineTo(width, height); ctx.fillStyle = gradient; ctx.fill();
 
-        // Zigzag Line
-        ctx.beginPath(); 
-        ctx.strokeStyle = '#60a5fa'; 
-        ctx.lineWidth = 1.5; 
-        ctx.lineJoin = 'miter'; 
-        ctx.miterLimit = 0; 
+        ctx.beginPath(); ctx.strokeStyle = '#60a5fa'; ctx.lineWidth = 1.5; ctx.lineJoin = 'miter'; ctx.miterLimit = 0; 
         for (let i = 0; i < prices.length; i++) {
             if (i === 0) ctx.moveTo(i * stepX, getY(prices[i]));
             else ctx.lineTo(i * stepX, getY(prices[i]));
         }
         ctx.stroke();
-
     } else {
-        // DRAW CANDLESTICKS
         if (candleData.length === 0) { requestAnimationFrame(drawChart); return; }
-        
-        let candleWidth = 12;
-        let spacing = 20;
-        let startX = width - (candleData.length * spacing);
-
+        let candleWidth = 12, spacing = 20, startX = width - (candleData.length * spacing);
         candleData.forEach((candle, index) => {
             let x = startX + (index * spacing) + (spacing / 2);
-            let yOpen = getY(candle.open);
-            let yClose = getY(candle.close);
-            let yHigh = getY(candle.high);
-            let yLow = getY(candle.low);
-
-            let color = candle.isUp ? '#22c55e' : '#ef4444'; // Green or Red
-
-            // Draw Wick (High to Low)
-            ctx.beginPath();
-            ctx.strokeStyle = color;
-            ctx.lineWidth = 1.5;
-            ctx.moveTo(x, yHigh);
-            ctx.lineTo(x, yLow);
-            ctx.stroke();
-
-            // Draw Body (Open to Close)
+            let yOpen = getY(candle.open), yClose = getY(candle.close);
+            let yHigh = getY(candle.high), yLow = getY(candle.low);
+            let color = candle.isUp ? '#22c55e' : '#ef4444';
+            ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.moveTo(x, yHigh); ctx.lineTo(x, yLow); ctx.stroke();
             ctx.fillStyle = color;
-            let bodyTop = Math.min(yOpen, yClose);
-            let bodyHeight = Math.max(Math.abs(yOpen - yClose), 2); // Ensure it's visible
+            let bodyTop = Math.min(yOpen, yClose), bodyHeight = Math.max(Math.abs(yOpen - yClose), 2);
             ctx.fillRect(x - (candleWidth / 2), bodyTop, candleWidth, bodyHeight);
         });
     }
 
-    // Current Price Indicator & Scale
     let lastPrice = prices[prices.length - 1];
-    let lastX = width - 2;
+    let lastX = chartType === 'line' ? (prices.length - 1) * (width / (maxPoints - 1)) : width - 10;
     let lastY = getY(lastPrice);
 
     ctx.beginPath(); ctx.strokeStyle = 'rgba(96, 165, 250, 0.4)'; ctx.setLineDash([4, 4]);
     ctx.moveTo(0, lastY); ctx.lineTo(width, lastY); ctx.stroke(); ctx.setLineDash([]); 
-    
     ctx.beginPath(); ctx.fillStyle = '#60a5fa'; ctx.arc(lastX, lastY, 3, 0, Math.PI * 2); ctx.fill();
-    
     ctx.fillStyle = 'rgba(59, 130, 246, 0.8)'; ctx.fillRect(width - 65, lastY - 10, 65, 20);
     ctx.fillStyle = 'white'; ctx.font = 'bold 11px Arial'; ctx.fillText(lastPrice.toFixed(5), width - 60, lastY + 4);
 
-    // 5-Decimal Scale Labels
     ctx.fillStyle = '#64748b'; ctx.font = '10px Arial';
     let steps = 5;
     for (let i = 0; i <= steps; i++) {
         let priceLevel = minPrice + (adjustedRange * (i / steps));
         let yPos = getY(priceLevel);
-        if (Math.abs(yPos - lastY) > 15) {
-            ctx.fillText(priceLevel.toFixed(5), width - 60, yPos);
-        }
+        if (Math.abs(yPos - lastY) > 15) { ctx.fillText(priceLevel.toFixed(5), width - 60, yPos); }
     }
 
-    // Visual Tags
     let now = Date.now();
     chartTags = chartTags.filter(tag => {
         if (tag.type === 'entry') {
             let timeLeft = Math.max(0, Math.ceil((tag.expiry - now) / 1000));
             let tagY = getY(tag.price);
             let tagColor = tag.direction === 'BUY' ? '#22c55e' : '#ef4444';
-            
-            ctx.beginPath(); ctx.strokeStyle = tagColor; ctx.lineWidth = 1;
-            ctx.moveTo(0, tagY); ctx.lineTo(width, tagY); ctx.stroke();
-
-            ctx.fillStyle = tagColor;
-            ctx.fillRect(10, tagY - 10, 70, 20);
-            ctx.fillStyle = 'white'; ctx.font = 'bold 10px Arial';
-            ctx.fillText(`${tag.direction} $${tag.amount}`, 15, tagY + 4);
-
+            ctx.beginPath(); ctx.strokeStyle = tagColor; ctx.lineWidth = 1; ctx.moveTo(0, tagY); ctx.lineTo(width, tagY); ctx.stroke();
+            ctx.fillStyle = tagColor; ctx.fillRect(10, tagY - 10, 70, 20);
+            ctx.fillStyle = 'white'; ctx.font = 'bold 10px Arial'; ctx.fillText(`${tag.direction} $${tag.amount}`, 15, tagY + 4);
             if (timeLeft > 0) {
-                ctx.fillStyle = '#1e293b';
-                ctx.fillRect(width - 60, tagY - 10, 50, 20);
-                ctx.fillStyle = '#60a5fa'; ctx.font = 'bold 11px Arial';
-                ctx.fillText(`⏱ ${timeLeft}s`, width - 55, tagY + 4);
+                ctx.fillStyle = '#1e293b'; ctx.fillRect(width - 60, tagY - 10, 50, 20);
+                ctx.fillStyle = '#60a5fa'; ctx.font = 'bold 11px Arial'; ctx.fillText(`⏱ ${timeLeft}s`, width - 55, tagY + 4);
             }
             return timeLeft > 0; 
         }
         if (tag.type === 'profit') {
             let tagY = getY(tag.price);
             if (now - tag.time < 5000) {
-                ctx.fillStyle = '#22c55e';
-                ctx.fillRect(width / 2 - 30, tagY - 25, 60, 20);
-                ctx.fillStyle = 'white'; ctx.font = 'bold 12px Arial';
-                ctx.fillText(`+$${tag.amount.toFixed(2)}`, width / 2 - 25, tagY - 10);
+                ctx.fillStyle = '#22c55e'; ctx.fillRect(width / 2 - 30, tagY - 25, 60, 20);
+                ctx.fillStyle = 'white'; ctx.font = 'bold 12px Arial'; ctx.fillText(`+$${tag.amount.toFixed(2)}`, width / 2 - 25, tagY - 10);
                 return true;
             }
             return false;
@@ -450,12 +435,12 @@ function drawChart() {
         return false;
     });
 
-    // Time Labels
     ctx.fillStyle = '#64748b'; ctx.font = '10px Arial';
     for (let i = 0; i < timestamps.length; i += 15) {
-        if (i * (width / (maxPoints - 1)) > width - 30) continue;
+        let xPos = i * (width / (maxPoints - 1));
+        if (xPos > width - 30) continue;
         let date = new Date(timestamps[i]);
-        ctx.fillText(date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }), i * (width / (maxPoints - 1)), height + 15);
+        ctx.fillText(date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }), xPos, height + 15);
     }
     requestAnimationFrame(drawChart);
 }
@@ -465,6 +450,7 @@ function openModal(modalId) {
     document.getElementById(modalId).style.display = "block"; 
     if (modalId === 'ai-modal') fetchAIStatus();
     if (modalId === 'signals-modal') fetchLiveSignals();
+    if (modalId === 'wallet-modal') renderWalletLedger(); // Load ledger when wallet opens
 }
 function closeModal(modalId) { document.getElementById(modalId).style.display = "none"; }
 window.onclick = function(event) { if (event.target.classList.contains('modal')) event.target.style.display = "none"; }
@@ -481,7 +467,6 @@ async function fetchAIStatus() {
         if (data.success) {
             let suggColor = data.suggestion === 'BUY' ? '#22c55e' : data.suggestion === 'SELL' ? '#ef4444' : '#3b82f6';
             let rsiColor = data.rsi > 60 ? '#ef4444' : data.rsi < 40 ? '#22c55e' : '#f59e0b';
-            
             document.getElementById('ai-content').innerHTML = `
                 <span class="close-btn" onclick="closeModal('ai-modal')">&times;</span>
                 <div class="ai-title">🤖 AI Trader Engine</div>
@@ -506,7 +491,6 @@ async function fetchLiveSignals() {
         const data = await res.json();
         if (data.success) {
             let dirColor = data.direction === 'BUY' ? '#22c55e' : '#ef4444';
-            
             document.getElementById('signals-content').innerHTML = `
                 <span class="close-btn" onclick="closeModal('signals-modal')">&times;</span>
                 <div class="ai-title">📡 Live AI Signals</div>
@@ -528,67 +512,38 @@ async function fetchLiveSignals() {
     } catch (e) { console.error(e); }
 }
 
-// --- SMART LIVE CHAT LOGIC ---
-function handleChatEnter(event) {
-    if (event.key === "Enter") { sendChatMessage(); }
-}
+function handleChatEnter(event) { if (event.key === "Enter") { sendChatMessage(); } }
 
 function sendChatMessage() {
     let input = document.getElementById('chat-input');
     let msg = input.value.trim();
     if (!msg) return;
-
     let chatBox = document.getElementById('chat-messages');
 
-    chatBox.innerHTML += `
-        <div style="background: #2b5278; color: white; padding: 10px 15px; border-radius: 12px; border-bottom-right-radius: 0; max-width: 85%; align-self: flex-end; font-size: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.2);">
-            ${msg}
-        </div>
-    `;
-    input.value = '';
-    chatBox.scrollTop = chatBox.scrollHeight;
+    chatBox.innerHTML += `<div style="background: #2b5278; color: white; padding: 10px 15px; border-radius: 12px; border-bottom-right-radius: 0; max-width: 85%; align-self: flex-end; font-size: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.2);">${msg}</div>`;
+    input.value = ''; chatBox.scrollTop = chatBox.scrollHeight;
 
     let typingId = 'typing-' + Date.now();
-    chatBox.innerHTML += `
-        <div id="${typingId}" style="background: #182533; color: #708499; padding: 10px 15px; border-radius: 12px; border-bottom-left-radius: 0; max-width: 85%; align-self: flex-start; font-size: 13px; font-style: italic;">
-            typing...
-        </div>
-    `;
+    chatBox.innerHTML += `<div id="${typingId}" style="background: #182533; color: #708499; padding: 10px 15px; border-radius: 12px; border-bottom-left-radius: 0; max-width: 85%; align-self: flex-start; font-size: 13px; font-style: italic;">typing...</div>`;
     chatBox.scrollTop = chatBox.scrollHeight;
 
     setTimeout(() => {
         document.getElementById(typingId).remove();
-
         let reply = "I have forwarded your message to a human agent. Please wait a moment.";
         let lowerMsg = msg.toLowerCase();
+        if (lowerMsg.includes("hi") || lowerMsg.includes("hello") || lowerMsg.includes("help")) reply = "Hello! I am your AI assistant. How can I help you today?";
+        else if (lowerMsg.includes("deposit") || lowerMsg.includes("money") || lowerMsg.includes("fund")) reply = "You can deposit funds by clicking the green Deposit button in your profile menu.";
+        else if (lowerMsg.includes("trade") || lowerMsg.includes("win") || lowerMsg.includes("profit")) reply = "Our AI engine has a 98% win rate! Just place a trade and watch the magic.";
+        else if (lowerMsg.includes("withdraw")) reply = "Withdrawals require KYC verification. Please contact support on Telegram for assistance.";
 
-        if (lowerMsg.includes("hi") || lowerMsg.includes("hello") || lowerMsg.includes("help")) {
-            reply = "Hello! I am your AI assistant. How can I help you today?";
-        } else if (lowerMsg.includes("deposit") || lowerMsg.includes("money") || lowerMsg.includes("fund")) {
-            reply = "You can deposit funds by clicking the green Deposit button in your profile menu.";
-        } else if (lowerMsg.includes("trade") || lowerMsg.includes("win") || lowerMsg.includes("profit")) {
-            reply = "Our AI engine has a 98% win rate! Just place a trade and watch the magic.";
-        } else if (lowerMsg.includes("withdraw")) {
-            reply = "Withdrawals require KYC verification. Please contact support on Telegram for assistance.";
-        }
-
-        chatBox.innerHTML += `
-            <div style="background: #182533; color: white; padding: 10px 15px; border-radius: 12px; border-bottom-left-radius: 0; max-width: 85%; align-self: flex-start; font-size: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.2);">
-                ${reply}
-            </div>
-        `;
+        chatBox.innerHTML += `<div style="background: #182533; color: white; padding: 10px 15px; border-radius: 12px; border-bottom-left-radius: 0; max-width: 85%; align-self: flex-start; font-size: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.2);">${reply}</div>`;
         chatBox.scrollTop = chatBox.scrollHeight;
-
     }, 1000);
 }
 
-// --- STRIPE & CRYPTO FLOWS ---
 function openStripeCheckout(amount) {
     let selectedAccount = document.getElementById('account-type').value;
-    if (selectedAccount !== 'real') {
-        alert("Please switch to the QT Real account to make deposits.");
-        return;
-    }
+    if (selectedAccount !== 'real') { alert("Please switch to the QT Real account to make deposits."); return; }
     closeModal('deposit-modal');
     document.getElementById('stripe-amount-display').innerText = "$" + amount;
     openModal('stripe-modal');
@@ -596,9 +551,7 @@ function openStripeCheckout(amount) {
 
 function processStripePayment() {
     let btn = document.getElementById('stripe-pay-btn');
-    btn.innerText = "Processing...";
-    btn.style.opacity = "0.7";
-    btn.style.cursor = "not-allowed";
+    btn.innerText = "Processing..."; btn.style.opacity = "0.7"; btn.style.cursor = "not-allowed";
     setTimeout(() => { btn.innerText = "Processing..."; }, 2000);
 }
 
@@ -612,8 +565,6 @@ function processWithdrawal() {
     if (isNaN(amount) || amount < 5000) { alert("Minimum withdrawal is $5,000."); return; }
 
     let btn = document.getElementById('withdraw-btn');
-    btn.innerText = "Processing...";
-    btn.style.opacity = "0.7";
-    btn.style.cursor = "not-allowed";
+    btn.innerText = "Processing..."; btn.style.opacity = "0.7"; btn.style.cursor = "not-allowed";
     setTimeout(() => { btn.innerText = "Processing..."; }, 2000);
 }
