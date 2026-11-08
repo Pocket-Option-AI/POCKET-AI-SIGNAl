@@ -18,11 +18,33 @@ let isChartRunning = false;
 let chartTags = []; 
 let ws = null; 
 let scrollInterval = null;
+let chartType = 'line'; // NEW: 'line' or 'candle'
+let candleData = []; // NEW: holds grouped candles
 
 // --- MENU TOGGLES ---
 function toggleProfile() { document.getElementById('profile-menu').classList.toggle('open'); }
 function toggleSocial() { document.getElementById('social-menu').classList.toggle('open'); }
 function copyTrader(name) { alert(`✅ You are now copying ${name}. Trades will be mirrored to your account.`); }
+
+// --- CHART TYPE TOGGLE ---
+function setChartType(type) {
+    chartType = type;
+    
+    let lineBtn = document.getElementById('btn-line');
+    let candleBtn = document.getElementById('btn-candle');
+    
+    if (type === 'line') {
+        lineBtn.style.background = '#3b82f6';
+        lineBtn.style.color = 'white';
+        candleBtn.style.background = 'transparent';
+        candleBtn.style.color = '#94a3b8';
+    } else {
+        candleBtn.style.background = '#3b82f6';
+        candleBtn.style.color = 'white';
+        lineBtn.style.background = 'transparent';
+        lineBtn.style.color = '#94a3b8';
+    }
+}
 
 // --- LIVE CLOCK ---
 setInterval(() => {
@@ -209,9 +231,10 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 
 function initChart() {
-    resizeCanvas(); prices = []; timestamps = [];
+    resizeCanvas(); prices = []; timestamps = []; candleData = [];
     let now = Date.now();
     
+    // Generate initial flat prices so line looks full
     for (let i = 0; i < maxPoints; i++) { 
         prices.push(currentPrice); 
         timestamps.push(now - ((maxPoints - i) * 1000)); 
@@ -236,11 +259,23 @@ function startChartEngine() {
         }
     };
 
+    // This timer updates the visual chart
     scrollInterval = setInterval(() => {
         prices.push(currentPrice); 
         timestamps.push(Date.now());
         
         if (prices.length > maxPoints) { prices.shift(); timestamps.shift(); }
+        
+        // Candle Logic (Group every 5 ticks into 1 candle)
+        if (prices.length % 5 === 0) {
+            let last5 = prices.slice(-5);
+            let open = last5[0];
+            let close = last5[last5.length - 1];
+            let high = Math.max(...last5);
+            let low = Math.min(...last5);
+            candleData.push({ open, close, high, low, isUp: close >= open });
+            if (candleData.length > 20) candleData.shift(); // Keep only 20 candles on screen
+        }
         
         document.getElementById('live-price').innerText = `Active: ${state.activeTrades.length} | Price: ${currentPrice.toFixed(5)}`;
     }, 500); 
@@ -275,16 +310,20 @@ function updateLiveSlider(price) {
 function drawChart() {
     if (!isChartRunning) return;
     ctx.clearRect(0, 0, width, height + 20);
-    let stepX = width / (maxPoints - 1);
     
     // Grid
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)'; ctx.lineWidth = 1;
     for (let x = 0; x < width; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke(); }
     for (let y = 0; y < height; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke(); }
+    
     if (prices.length === 0) { requestAnimationFrame(drawChart); return; }
 
     // Price Mapping
-    let minPrice = Math.min(...prices), maxPrice = Math.max(...prices);
+    let allPrices = chartType === 'candle' && candleData.length > 0 
+        ? candleData.flatMap(c => [c.high, c.low]) 
+        : prices;
+        
+    let minPrice = Math.min(...allPrices), maxPrice = Math.max(...allPrices);
     let priceRange = maxPrice - minPrice;
     if (priceRange === 0) priceRange = 0.001;
     let padding = priceRange * 0.1;
@@ -292,30 +331,66 @@ function drawChart() {
     let adjustedRange = maxPrice - minPrice;
     function getY(price) { return height - ((price - minPrice) / adjustedRange * height); }
 
-    // Gradient
-    let gradient = ctx.createLinearGradient(0, 0, 0, height);
-    gradient.addColorStop(0, 'rgba(96, 165, 250, 0.3)'); 
-    gradient.addColorStop(1, 'rgba(15, 23, 42, 0)');
-    ctx.beginPath(); ctx.moveTo(0, height); 
-    for (let i = 0; i < prices.length; i++) ctx.lineTo(i * stepX, getY(prices[i]));
-    ctx.lineTo(width, height); ctx.fillStyle = gradient; ctx.fill();
+    if (chartType === 'line') {
+        // DRAW LINE CHART
+        let stepX = width / (maxPoints - 1);
 
-    // ZIGZAG LINE
-    ctx.beginPath(); 
-    ctx.strokeStyle = '#60a5fa'; 
-    ctx.lineWidth = 1.5; 
-    ctx.lineJoin = 'miter'; 
-    ctx.miterLimit = 0; 
-    
-    for (let i = 0; i < prices.length; i++) {
-        if (i === 0) ctx.moveTo(i * stepX, getY(prices[i]));
-        else ctx.lineTo(i * stepX, getY(prices[i]));
+        // Gradient
+        let gradient = ctx.createLinearGradient(0, 0, 0, height);
+        gradient.addColorStop(0, 'rgba(96, 165, 250, 0.3)'); 
+        gradient.addColorStop(1, 'rgba(15, 23, 42, 0)');
+        ctx.beginPath(); ctx.moveTo(0, height); 
+        for (let i = 0; i < prices.length; i++) ctx.lineTo(i * stepX, getY(prices[i]));
+        ctx.lineTo(width, height); ctx.fillStyle = gradient; ctx.fill();
+
+        // Zigzag Line
+        ctx.beginPath(); 
+        ctx.strokeStyle = '#60a5fa'; 
+        ctx.lineWidth = 1.5; 
+        ctx.lineJoin = 'miter'; 
+        ctx.miterLimit = 0; 
+        for (let i = 0; i < prices.length; i++) {
+            if (i === 0) ctx.moveTo(i * stepX, getY(prices[i]));
+            else ctx.lineTo(i * stepX, getY(prices[i]));
+        }
+        ctx.stroke();
+
+    } else {
+        // DRAW CANDLESTICKS
+        if (candleData.length === 0) { requestAnimationFrame(drawChart); return; }
+        
+        let candleWidth = 12;
+        let spacing = 20;
+        let startX = width - (candleData.length * spacing);
+
+        candleData.forEach((candle, index) => {
+            let x = startX + (index * spacing) + (spacing / 2);
+            let yOpen = getY(candle.open);
+            let yClose = getY(candle.close);
+            let yHigh = getY(candle.high);
+            let yLow = getY(candle.low);
+
+            let color = candle.isUp ? '#22c55e' : '#ef4444'; // Green or Red
+
+            // Draw Wick (High to Low)
+            ctx.beginPath();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1.5;
+            ctx.moveTo(x, yHigh);
+            ctx.lineTo(x, yLow);
+            ctx.stroke();
+
+            // Draw Body (Open to Close)
+            ctx.fillStyle = color;
+            let bodyTop = Math.min(yOpen, yClose);
+            let bodyHeight = Math.max(Math.abs(yOpen - yClose), 2); // Ensure it's visible
+            ctx.fillRect(x - (candleWidth / 2), bodyTop, candleWidth, bodyHeight);
+        });
     }
-    ctx.stroke();
 
     // Current Price Indicator & Scale
     let lastPrice = prices[prices.length - 1];
-    let lastX = (prices.length - 1) * stepX;
+    let lastX = width - 2;
     let lastY = getY(lastPrice);
 
     ctx.beginPath(); ctx.strokeStyle = 'rgba(96, 165, 250, 0.4)'; ctx.setLineDash([4, 4]);
@@ -378,9 +453,9 @@ function drawChart() {
     // Time Labels
     ctx.fillStyle = '#64748b'; ctx.font = '10px Arial';
     for (let i = 0; i < timestamps.length; i += 15) {
-        if (i * stepX > width - 30) continue;
+        if (i * (width / (maxPoints - 1)) > width - 30) continue;
         let date = new Date(timestamps[i]);
-        ctx.fillText(date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }), i * stepX, height + 15);
+        ctx.fillText(date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }), i * (width / (maxPoints - 1)), height + 15);
     }
     requestAnimationFrame(drawChart);
 }
@@ -453,7 +528,7 @@ async function fetchLiveSignals() {
     } catch (e) { console.error(e); }
 }
 
-// --- SMART LIVE CHAT LOGIC (TELEGRAM STYLE) ---
+// --- SMART LIVE CHAT LOGIC ---
 function handleChatEnter(event) {
     if (event.key === "Enter") { sendChatMessage(); }
 }
@@ -507,10 +582,8 @@ function sendChatMessage() {
     }, 1000);
 }
 
-// --- NEW: STRIPE & CRYPTO FLOWS ---
-
+// --- STRIPE & CRYPTO FLOWS ---
 function openStripeCheckout(amount) {
-    // Check if Real account is selected
     let selectedAccount = document.getElementById('account-type').value;
     if (selectedAccount !== 'real') {
         alert("Please switch to the QT Real account to make deposits.");
@@ -523,45 +596,24 @@ function openStripeCheckout(amount) {
 
 function processStripePayment() {
     let btn = document.getElementById('stripe-pay-btn');
-    let originalText = btn.innerText;
-    
-    // Change button to loading state
     btn.innerText = "Processing...";
     btn.style.opacity = "0.7";
     btn.style.cursor = "not-allowed";
-
-    // Stop it from changing forever
-    setTimeout(() => {
-        btn.innerText = "Processing...";
-    }, 2000);
+    setTimeout(() => { btn.innerText = "Processing..."; }, 2000);
 }
 
 function processWithdrawal() {
     let amount = parseFloat(document.getElementById('crypto-amount').value);
     let address = document.getElementById('crypto-address').value;
-
     let selectedAccount = document.getElementById('account-type').value;
-    if (selectedAccount !== 'real') {
-        alert("Please switch to the QT Real account to withdraw.");
-        return;
-    }
 
-    if (!address || address.length < 10) {
-        alert("Please enter a valid wallet address.");
-        return;
-    }
-
-    if (isNaN(amount) || amount < 5000) {
-        alert("Minimum withdrawal is $5,000.");
-        return;
-    }
+    if (selectedAccount !== 'real') { alert("Please switch to the QT Real account to withdraw."); return; }
+    if (!address || address.length < 10) { alert("Please enter a valid wallet address."); return; }
+    if (isNaN(amount) || amount < 5000) { alert("Minimum withdrawal is $5,000."); return; }
 
     let btn = document.getElementById('withdraw-btn');
     btn.innerText = "Processing...";
     btn.style.opacity = "0.7";
     btn.style.cursor = "not-allowed";
-
-    setTimeout(() => {
-        btn.innerText = "Processing...";
-    }, 2000);
+    setTimeout(() => { btn.innerText = "Processing..."; }, 2000);
 }
