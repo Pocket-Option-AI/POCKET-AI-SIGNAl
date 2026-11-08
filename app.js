@@ -4,7 +4,8 @@ let state = {
     account: 'demo', 
     balances: { demo: 0, real: 0 },
     activeTrades: [],
-    history: []
+    history: [],
+    currentPair: 'EUR/USD'
 };
 
 const canvas = document.getElementById('tradingChart');
@@ -27,20 +28,42 @@ function toggleProfile() { document.getElementById('profile-menu').classList.tog
 function toggleSocial() { document.getElementById('social-menu').classList.toggle('open'); }
 function copyTrader(name) { alert(`✅ You are now copying ${name}. Trades will be mirrored to your account.`); }
 
+// --- ASSET MARKET WATCH MENU ---
+function toggleAssetMenu() {
+    let menu = document.getElementById('asset-menu');
+    if (menu.style.bottom === '0px') {
+        menu.style.bottom = '-100%';
+    } else {
+        menu.style.bottom = '0px';
+    }
+}
+
+function changeAsset(pair, basePrice, payout) {
+    state.currentPair = pair;
+    currentPrice = basePrice;
+    
+    document.getElementById('selected-asset-name').innerText = pair;
+    document.getElementById('current-pair-name').innerText = pair;
+    document.getElementById('current-price-display').innerText = basePrice.toFixed(pair === 'USD/JPY' ? 3 : 5);
+    
+    toggleAssetMenu();
+    initChart(); // Reset the chart for the new pair
+    
+    // Update the payout text to look real
+    document.querySelector('.profit-info').innerHTML = `<span>Payout: <strong>+${payout}%</strong></span><span>Profit: <strong id="potential-profit">+$${(1 * (payout/100)).toFixed(2)}</strong></span>`;
+}
+
 // --- LIVE TICKER ENGINE ---
 const fakeUsers = ["User***92", "User***17", "Trader***4", "Pro***88", "Alex***", "Sarah***", "Crypto***1", "Forex***X"];
 function startLiveTicker() {
     if (tickerInterval) clearInterval(tickerInterval);
-    
     tickerInterval = setInterval(() => {
         let tickerEl = document.getElementById('live-ticker');
         if (!tickerEl) return;
         
-        // Reset position to off-screen right
         tickerEl.style.transition = 'none';
         tickerEl.style.right = '-100%';
         
-        // Generate random win
         let user = fakeUsers[Math.floor(Math.random() * fakeUsers.length)];
         let amount = (Math.random() * 500 + 10).toFixed(2);
         let pair = Math.random() > 0.5 ? "EUR/USD" : "AED/CNY";
@@ -49,13 +72,11 @@ function startLiveTicker() {
         
         tickerEl.innerHTML = `👤 ${user} won <span style="color: #fff;">$${amount}</span> on ${pair} (${direction}) <span style="color: ${color};">●</span>`;
         
-        // Animate sliding in from right to left
         setTimeout(() => {
             tickerEl.style.transition = 'right 4s linear';
             tickerEl.style.right = '100%';
         }, 100);
-        
-    }, 3500); // New win every 3.5 seconds
+    }, 3500);
 }
 
 // --- CHART TYPE TOGGLE ---
@@ -65,15 +86,11 @@ function setChartType(type) {
     let candleBtn = document.getElementById('btn-candle');
     
     if (type === 'line') {
-        lineBtn.style.background = '#3b82f6';
-        lineBtn.style.color = 'white';
-        candleBtn.style.background = 'transparent';
-        candleBtn.style.color = '#94a3b8';
+        lineBtn.style.background = '#3b82f6'; lineBtn.style.color = 'white';
+        candleBtn.style.background = 'transparent'; candleBtn.style.color = '#94a3b8';
     } else {
-        candleBtn.style.background = '#3b82f6';
-        candleBtn.style.color = 'white';
-        lineBtn.style.background = 'transparent';
-        lineBtn.style.color = '#94a3b8';
+        candleBtn.style.background = '#3b82f6'; candleBtn.style.color = 'white';
+        lineBtn.style.background = 'transparent'; lineBtn.style.color = '#94a3b8';
     }
 }
 
@@ -120,7 +137,7 @@ async function handleLogin() {
             loadUserData();
             loadHistory();
             startChartEngine();
-            startLiveTicker(); // Start the ticker
+            startLiveTicker();
         } else { alert("Login failed: " + data.message); }
     } catch (e) { alert("Network error."); }
 }
@@ -172,7 +189,7 @@ function updateBalanceDisplay() {
 async function placeTrade(direction) {
     let amount = parseFloat(document.getElementById('trade-amount').value);
     let expirySeconds = parseInt(document.getElementById('trade-expiry').value);
-    let pair = 'EUR/USD';
+    let pair = state.currentPair;
     
     if (isNaN(amount) || amount <= 0) { alert("Please enter a valid amount."); return; }
     if (amount > state.balances[state.account]) { alert("Insufficient balance."); return; }
@@ -320,17 +337,32 @@ function startChartEngine() {
     if (ws) ws.close();
     if (scrollInterval) clearInterval(scrollInterval);
     
-    ws = new WebSocket('wss://stream.binance.com:9443/ws/eurusdt@trade');
-    
-    ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        if (data.p) {
-            currentPrice = parseFloat(data.p);
+    // If EUR/USD, use real live WebSocket. Otherwise, use realistic simulation for other pairs.
+    if (state.currentPair === 'EUR/USD') {
+        ws = new WebSocket('wss://stream.binance.com:9443/ws/eurusdt@trade');
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.p) {
+                currentPrice = parseFloat(data.p);
+                let priceDisplay = document.getElementById('current-price-display');
+                if (priceDisplay) priceDisplay.innerText = currentPrice.toFixed(5);
+                updateLiveSlider(currentPrice);
+            }
+        };
+    } else {
+        // SIMULATED LIVE DATA FOR OTHER PAIRS (Option B)
+        scrollInterval = setInterval(() => {
+            // Realistic market movement simulation
+            let volatility = state.currentPair === 'USD/JPY' ? 0.015 : 0.00015;
+            let change = (Math.random() - 0.5) * volatility * 3; 
+            currentPrice += change;
+            
+            let decimals = state.currentPair === 'USD/JPY' ? 3 : 5;
             let priceDisplay = document.getElementById('current-price-display');
-            if (priceDisplay) priceDisplay.innerText = currentPrice.toFixed(5);
+            if (priceDisplay) priceDisplay.innerText = currentPrice.toFixed(decimals);
             updateLiveSlider(currentPrice);
-        }
-    };
+        }, 500);
+    }
 
     scrollInterval = setInterval(() => {
         prices.push(currentPrice); 
@@ -346,7 +378,9 @@ function startChartEngine() {
             candleData.push({ open, close, high, low, isUp: close >= open });
             if (candleData.length > 20) candleData.shift();
         }
-        document.getElementById('live-price').innerText = `Active: ${state.activeTrades.length} | Price: ${currentPrice.toFixed(5)}`;
+        
+        let decimals = state.currentPair === 'USD/JPY' ? 3 : 5;
+        document.getElementById('live-price').innerText = `Active: ${state.activeTrades.length} | Price: ${currentPrice.toFixed(decimals)}`;
     }, 500); 
 
     if (prices.length > 0) requestAnimationFrame(drawChart);
@@ -429,14 +463,14 @@ function drawChart() {
     ctx.moveTo(0, lastY); ctx.lineTo(width, lastY); ctx.stroke(); ctx.setLineDash([]); 
     ctx.beginPath(); ctx.fillStyle = '#60a5fa'; ctx.arc(lastX, lastY, 3, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = 'rgba(59, 130, 246, 0.8)'; ctx.fillRect(width - 65, lastY - 10, 65, 20);
-    ctx.fillStyle = 'white'; ctx.font = 'bold 11px Arial'; ctx.fillText(lastPrice.toFixed(5), width - 60, lastY + 4);
+    ctx.fillStyle = 'white'; ctx.font = 'bold 11px Arial'; ctx.fillText(lastPrice.toFixed(state.currentPair === 'USD/JPY' ? 3 : 5), width - 60, lastY + 4);
 
     ctx.fillStyle = '#64748b'; ctx.font = '10px Arial';
     let steps = 5;
     for (let i = 0; i <= steps; i++) {
         let priceLevel = minPrice + (adjustedRange * (i / steps));
         let yPos = getY(priceLevel);
-        if (Math.abs(yPos - lastY) > 15) { ctx.fillText(priceLevel.toFixed(5), width - 60, yPos); }
+        if (Math.abs(yPos - lastY) > 15) { ctx.fillText(priceLevel.toFixed(state.currentPair === 'USD/JPY' ? 3 : 5), width - 60, yPos); }
     }
 
     let now = Date.now();
