@@ -36,7 +36,6 @@ db.serialize(() => {
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
 
-    // NEW TRANSACTIONS TABLE
     db.run(`CREATE TABLE IF NOT EXISTS transactions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER,
@@ -113,7 +112,6 @@ app.post('/api/reset-demo', (req, res) => {
     });
 });
 
-// --- NEW: LOG TRANSACTION (Stripe & Crypto) ---
 app.post('/api/log-transaction', (req, res) => {
     const { userId, type, amount, details } = req.body;
     if (!userId) return res.status(401).json({ success: false, message: "Not logged in" });
@@ -125,21 +123,75 @@ app.post('/api/log-transaction', (req, res) => {
         });
 });
 
-// --- NEW: FETCH FINANCE LEDGER ---
+// --- FETCH FINANCE LEDGER ---
 app.get('/api/finance-ledger/:userId', (req, res) => {
     const userId = req.params.userId;
-    
-    // We combine trades and transactions into one ledger
     db.all(`SELECT id, pair as title, amount, result as status, timestamp, 'trade' as type FROM trades WHERE user_id = ?`, [userId], (err, trades) => {
         if (err) return res.status(500).json({ success: false, message: "Failed to fetch ledger" });
-        
         db.all(`SELECT id, details as title, amount, status, timestamp, type FROM transactions WHERE user_id = ?`, [userId], (err, txs) => {
             if (err) return res.status(500).json({ success: false, message: "Failed to fetch ledger" });
-            
             let allTransactions = [...trades, ...txs];
             allTransactions.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-            
             res.json({ success: true, ledger: allTransactions });
+        });
+    });
+});
+
+// --- NEW: FETCH PROGRESS STATS ---
+app.get('/api/progress-stats/:userId/:accountType', (req, res) => {
+    const userId = req.params.userId;
+    const accountType = req.params.accountType;
+    
+    db.all(`SELECT amount, result, timestamp FROM trades WHERE user_id = ? AND account_type = ? ORDER BY timestamp ASC`, 
+    [userId, accountType], (err, rows) => {
+        if (err) return res.status(500).json({ success: false, message: "Failed to fetch stats" });
+        
+        let bestTrade = 0;
+        let totalVolume = 0;
+        let totalWins = 0;
+        let currentStreak = 0;
+        let maxStreak = 0;
+        
+        let dailyProfit = {};
+        
+        rows.forEach(r => {
+            totalVolume += r.amount;
+            if (r.result === 'WIN') {
+                totalWins++;
+                let profit = r.amount * 0.92;
+                if (profit > bestTrade) bestTrade = profit;
+                currentStreak++;
+                if (currentStreak > maxStreak) maxStreak = currentStreak;
+            } else if (r.result === 'LOSS') {
+                currentStreak = 0;
+            }
+            
+            // Build 7-day chart data
+            let dateStr = new Date(r.timestamp).toISOString().split('T')[0];
+            if (!dailyProfit[dateStr]) dailyProfit[dateStr] = 0;
+            if (r.result === 'WIN') dailyProfit[dateStr] += (r.amount * 0.92);
+            else if (r.result === 'LOSS') dailyProfit[dateStr] -= r.amount;
+        });
+
+        // Prepare last 7 days array
+        let last7Days = [];
+        for (let i = 6; i >= 0; i--) {
+            let d = new Date();
+            d.setDate(d.getDate() - i);
+            let dateStr = d.toISOString().split('T')[0];
+            last7Days.push({ 
+                date: d.toLocaleDateString('en-US', { weekday: 'short' }), 
+                profit: dailyProfit[dateStr] || 0 
+            });
+        }
+
+        res.json({ 
+            success: true, 
+            bestTrade: bestTrade.toFixed(2), 
+            totalVolume: totalVolume.toFixed(2), 
+            maxStreak: maxStreak, 
+            totalWins: totalWins,
+            last7Days: last7Days
         });
     });
 });
@@ -183,7 +235,6 @@ app.post('/api/close-trade', (req, res) => {
 
     db.run(`UPDATE users SET ${balanceCol} = ${balanceCol} + ? WHERE id = ?`, [payout, userId], function(err) {
         if (err) return res.status(500).json({ success: false, message: "Failed to update balance" });
-        
         db.run(`UPDATE trades SET result = ? WHERE id = ?`, [resultStr, tradeId]);
 
         if (isWin) {
