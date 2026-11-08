@@ -49,7 +49,6 @@
         </header>
 
         <div class="chart-controls" style="display: flex; justify-content: space-between; align-items: center;">
-            <!-- CLICKABLE ASSET NAME TO OPEN MARKET WATCH -->
             <div onclick="toggleAssetMenu()" style="background: #151e32; color: white; border: 1px solid #1e293b; padding: 10px; border-radius: 8px; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 5px; width: 40%; justify-content: space-between;">
                 <span id="selected-asset-name">EUR/USD</span>
                 <span style="font-size: 10px;">▼</span>
@@ -132,24 +131,14 @@
         </nav>
     </div>
 
-    <!-- NEW SLIDE-UP ASSET MENU -->
     <div id="asset-menu" class="profile-menu" style="bottom: -100%; top: auto; height: 60%; right: 0; left: 0; width: 100%; border-radius: 20px 20px 0 0; transition: bottom 0.3s ease; padding: 20px; background: #0f172a; border-top: 1px solid #1e293b; z-index: 600;">
         <div style="width: 40px; height: 4px; background: #334155; border-radius: 2px; margin: 0 auto 15px auto;"></div>
         <h3 style="color: #94a3b8; font-size: 14px; margin-bottom: 15px;">Select Asset</h3>
-        
         <div style="display: flex; flex-direction: column; gap: 10px;">
-            <div class="settings-item" onclick="changeAsset('EUR/USD', 1.08500, 92)" style="border-left: 3px solid #22c55e;">
-                <span>🇪🇺 EUR/USD</span> <span style="color: #22c55e; font-weight: bold;">92%</span>
-            </div>
-            <div class="settings-item" onclick="changeAsset('GBP/USD', 1.26500, 90)">
-                <span>🇬🇧 GBP/USD</span> <span style="color: #22c55e; font-weight: bold;">90%</span>
-            </div>
-            <div class="settings-item" onclick="changeAsset('USD/JPY', 150.500, 88)">
-                <span>🇺🇸 USD/JPY</span> <span style="color: #22c55e; font-weight: bold;">88%</span>
-            </div>
-            <div class="settings-item" onclick="changeAsset('AED/CNY OTC', 1.72500, 92)">
-                <span>🇦🇪 AED/CNY OTC</span> <span style="color: #22c55e; font-weight: bold;">92%</span>
-            </div>
+            <div class="settings-item" onclick="changeAsset('EUR/USD', 1.08500, 92)" style="border-left: 3px solid #22c55e;"><span>🇪🇺 EUR/USD</span> <span style="color: #22c55e; font-weight: bold;">92%</span></div>
+            <div class="settings-item" onclick="changeAsset('GBP/USD', 1.26500, 90)"><span>🇬🇧 GBP/USD</span> <span style="color: #22c55e; font-weight: bold;">90%</span></div>
+            <div class="settings-item" onclick="changeAsset('USD/JPY', 150.500, 88)"><span>🇺🇸 USD/JPY</span> <span style="color: #22c55e; font-weight: bold;">88%</span></div>
+            <div class="settings-item" onclick="changeAsset('AED/CNY OTC', 1.72500, 92)"><span>🇦🇪 AED/CNY OTC</span> <span style="color: #22c55e; font-weight: bold;">92%</span></div>
         </div>
         <button onclick="toggleAssetMenu()" style="width: 100%; padding: 12px; background: #1e293b; color: white; border: none; border-radius: 8px; font-weight: bold; margin-top: 20px; cursor: pointer;">Cancel</button>
     </div>
@@ -228,6 +217,26 @@
             <p style="font-size: 12px; color: #94a3b8;">Balance</p>
             <h3 id="profile-balance-text">$0.00</h3>
         </div>
+
+        <!-- TODAY'S STATS CARD -->
+        <div style="background: #151e32; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #1e293b;">
+            <p style="font-size: 12px; color: #94a3b8; margin-bottom: 10px;">Today's Stats</p>
+            <div style="display: flex; justify-content: space-between; text-align: center;">
+                <div>
+                    <p style="font-size: 10px; color: #64748b;">Trades</p>
+                    <p id="stat-trades" style="font-size: 16px; font-weight: bold; color: white;">0</p>
+                </div>
+                <div>
+                    <p style="font-size: 10px; color: #64748b;">Win Rate</p>
+                    <p id="stat-winrate" style="font-size: 16px; font-weight: bold; color: white;">0%</p>
+                </div>
+                <div>
+                    <p style="font-size: 10px; color: #64748b;">Profit</p>
+                    <p id="stat-profit" style="font-size: 16px; font-weight: bold; color: #22c55e;">$0.00</p>
+                </div>
+            </div>
+        </div>
+
         <div class="profile-buttons">
             <button class="btn-deposit" onclick="openModal('deposit-modal')">Deposit</button>
             <button class="btn-withdraw" onclick="openModal('withdraw-modal')">Withdraw</button>
