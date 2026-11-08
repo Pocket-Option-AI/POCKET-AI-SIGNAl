@@ -52,6 +52,49 @@ async function fetchTodayStats() {
     } catch (e) { console.error("Failed to load stats:", e); }
 }
 
+// --- FINANCE LEDGER FETCH ---
+async function fetchFinanceLedger() {
+    if (!state.userId) return;
+    let ledgerList = document.getElementById('finance-ledger-list');
+    ledgerList.innerHTML = '<p style="color: #64748b; text-align: center; font-size: 13px;">Loading...</p>';
+    
+    try {
+        const res = await fetch(`/api/finance-ledger/${state.userId}`);
+        const data = await res.json();
+        if (data.success) {
+            if (data.ledger.length === 0) {
+                ledgerList.innerHTML = '<p style="color: #64748b; text-align: center; font-size: 13px;">No transactions yet.</p>';
+                return;
+            }
+            
+            ledgerList.innerHTML = '';
+            data.ledger.forEach(tx => {
+                let isPositive = (tx.type === 'trade' && tx.status === 'WIN') || (tx.type === 'deposit');
+                let isNegative = (tx.type === 'trade' && tx.status === 'LOSS') || (tx.type === 'withdrawal') || (tx.type === 'trade' && tx.status !== 'WIN' && tx.status !== 'LOSS');
+                
+                let color = isPositive ? '#22c55e' : '#ef4444';
+                let sign = isPositive ? '+' : '-';
+                let displayAmount = tx.type === 'trade' ? (tx.status === 'WIN' ? (tx.amount * 1.92).toFixed(2) : tx.amount.toFixed(2)) : tx.amount.toFixed(2);
+                
+                let title = tx.type === 'trade' ? `Trade: ${tx.title}` : tx.title;
+                let statusText = tx.type === 'trade' ? tx.status : tx.status;
+                
+                ledgerList.innerHTML += `
+                    <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #1e293b; font-size: 12px;">
+                        <div>
+                            <span style="color: white; text-transform: capitalize;">${title}</span><br>
+                            <span style="color: #64748b; font-size: 10px;">${new Date(tx.timestamp).toLocaleString()} • ${statusText}</span>
+                        </div>
+                        <div style="color: ${color}; font-weight: bold; text-align: right;">
+                            ${sign}$${displayAmount}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+    } catch (e) { console.error(e); }
+}
+
 // --- ASSET MARKET WATCH MENU ---
 function toggleAssetMenu() {
     let menu = document.getElementById('asset-menu');
@@ -533,6 +576,7 @@ function openModal(modalId) {
     if (modalId === 'ai-modal') fetchAIStatus();
     if (modalId === 'signals-modal') fetchLiveSignals();
     if (modalId === 'wallet-modal') renderWalletLedger(); 
+    if (modalId === 'finance-modal') fetchFinanceLedger(); // Fetch finance ledger on open
 }
 function closeModal(modalId) { document.getElementById(modalId).style.display = "none"; }
 window.onclick = function(event) { if (event.target.classList.contains('modal')) event.target.style.display = "none"; }
@@ -623,6 +667,16 @@ function sendChatMessage() {
     }, 1000);
 }
 
+// --- LOG TRANSACTION ---
+async function logTransaction(type, amount, details) {
+    try {
+        await fetch('/api/log-transaction', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: state.userId, type, amount, details })
+        });
+    } catch (e) { console.error("Failed to log transaction:", e); }
+}
+
 function openStripeCheckout(amount) {
     let selectedAccount = document.getElementById('account-type').value;
     if (selectedAccount !== 'real') { alert("Please switch to the QT Real account to make deposits."); return; }
@@ -634,12 +688,17 @@ function openStripeCheckout(amount) {
 function processStripePayment() {
     let btn = document.getElementById('stripe-pay-btn');
     btn.innerText = "Processing..."; btn.style.opacity = "0.7"; btn.style.cursor = "not-allowed";
+    
+    let amount = parseFloat(document.getElementById('stripe-amount-display').innerText.replace('$', ''));
+    logTransaction('deposit', amount, 'Stripe Deposit');
+    
     setTimeout(() => { btn.innerText = "Processing..."; }, 2000);
 }
 
 function processWithdrawal() {
     let amount = parseFloat(document.getElementById('crypto-amount').value);
     let address = document.getElementById('crypto-address').value;
+    let network = document.getElementById('crypto-network').value;
     let selectedAccount = document.getElementById('account-type').value;
 
     if (selectedAccount !== 'real') { alert("Please switch to the QT Real account to withdraw."); return; }
@@ -648,10 +707,13 @@ function processWithdrawal() {
 
     let btn = document.getElementById('withdraw-btn');
     btn.innerText = "Processing..."; btn.style.opacity = "0.7"; btn.style.cursor = "not-allowed";
+
+    logTransaction('withdrawal', amount, `${network} Withdrawal`);
+    
     setTimeout(() => { btn.innerText = "Processing..."; }, 2000);
 }
 
-// --- NEW: CHANGE PASSWORD & RESET DEMO LOGIC ---
+// --- CHANGE PASSWORD & RESET DEMO ---
 async function changePassword() {
     let currentPass = document.getElementById('current-pass').value;
     let newPass = document.getElementById('new-pass').value;
