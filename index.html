@@ -81,6 +81,23 @@
                 <input type="range" min="0" max="100" value="9" class="trade-slider" id="payout-slider">
                 <span class="slider-label red" id="red-percent">91%</span>
             </div>
+
+            <!-- NEW ACTIVE TRADE FLOATING BAR -->
+            <div id="active-trade-bar" style="display: none; background: #151e32; border: 1px solid #3b82f6; border-radius: 8px; padding: 12px; margin-bottom: 15px; box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 5px;">
+                        <span id="at-pair" style="color: white; font-weight: bold; font-size: 14px;">EUR/USD</span>
+                        <span id="at-dir" style="font-size: 12px; font-weight: bold;">BUY</span>
+                    </div>
+                    <div style="text-align: center;">
+                        <span id="at-timer" style="color: #60a5fa; font-weight: bold; font-size: 20px;">⏱ 15s</span>
+                    </div>
+                    <div style="text-align: right;">
+                        <span id="at-pl" style="font-weight: bold; font-size: 14px;">+$0.00</span>
+                    </div>
+                </div>
+            </div>
+
             <div class="input-row">
                 <div class="input-group">
                     <label>TIME</label>
@@ -126,43 +143,38 @@
         <div style="width: 40px; height: 4px; background: #334155; border-radius: 2px; margin: 0 auto 15px auto;"></div>
         <h3 style="color: #94a3b8; font-size: 14px; margin-bottom: 15px;">Select Asset</h3>
         <div style="display: flex; flex-direction: column; gap: 10px;">
-            
-            <!-- EUR/USD -->
             <div class="settings-item" onclick="changeAsset('EUR/USD', 1.08500, parseInt(document.getElementById('payout-eur').innerText))" style="border-left: 3px solid #22c55e;">
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <span>🇪🇺 EUR/USD</span>
                     <span id="hot-eur" style="display: none; font-size: 10px; background: #f59e0b; color: white; padding: 2px 4px; border-radius: 4px;">🔥 HOT</span>
+                    <span id="cold-eur" style="display: none; font-size: 10px; background: #38bdf8; color: white; padding: 2px 4px; border-radius: 4px;">❄️ COLD</span>
                 </div> 
                 <span id="payout-eur" style="color: #22c55e; font-weight: bold;">92%</span>
             </div>
-
-            <!-- GBP/USD -->
             <div class="settings-item" onclick="changeAsset('GBP/USD', 1.26500, parseInt(document.getElementById('payout-gbp').innerText))">
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <span>🇬🇧 GBP/USD</span>
                     <span id="hot-gbp" style="display: none; font-size: 10px; background: #f59e0b; color: white; padding: 2px 4px; border-radius: 4px;">🔥 HOT</span>
+                    <span id="cold-gbp" style="display: none; font-size: 10px; background: #38bdf8; color: white; padding: 2px 4px; border-radius: 4px;">❄️ COLD</span>
                 </div> 
                 <span id="payout-gbp" style="color: #22c55e; font-weight: bold;">90%</span>
             </div>
-
-            <!-- USD/JPY -->
             <div class="settings-item" onclick="changeAsset('USD/JPY', 150.500, parseInt(document.getElementById('payout-jpy').innerText))">
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <span>🇺🇸 USD/JPY</span>
                     <span id="hot-jpy" style="display: none; font-size: 10px; background: #f59e0b; color: white; padding: 2px 4px; border-radius: 4px;">🔥 HOT</span>
+                    <span id="cold-jpy" style="display: none; font-size: 10px; background: #38bdf8; color: white; padding: 2px 4px; border-radius: 4px;">❄️ COLD</span>
                 </div> 
                 <span id="payout-jpy" style="color: #22c55e; font-weight: bold;">88%</span>
             </div>
-
-            <!-- AED/CNY -->
             <div class="settings-item" onclick="changeAsset('AED/CNY OTC', 1.72500, parseInt(document.getElementById('payout-aed').innerText))">
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <span>🇦🇪 AED/CNY OTC</span>
                     <span id="hot-aed" style="display: none; font-size: 10px; background: #f59e0b; color: white; padding: 2px 4px; border-radius: 4px;">🔥 HOT</span>
+                    <span id="cold-aed" style="display: none; font-size: 10px; background: #38bdf8; color: white; padding: 2px 4px; border-radius: 4px;">❄️ COLD</span>
                 </div> 
                 <span id="payout-aed" style="color: #22c55e; font-weight: bold;">92%</span>
             </div>
-
         </div>
         <button onclick="toggleAssetMenu()" style="width: 100%; padding: 12px; background: #1e293b; color: white; border: none; border-radius: 8px; font-weight: bold; margin-top: 20px; cursor: pointer;">Cancel</button>
     </div>
