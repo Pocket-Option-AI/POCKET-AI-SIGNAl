@@ -46,7 +46,6 @@ db.serialize(() => {
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
 
-    // NEW ACTIVITIES TABLE
     db.run(`CREATE TABLE IF NOT EXISTS activities (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER,
@@ -142,7 +141,6 @@ app.post('/api/log-transaction', (req, res) => {
         });
 });
 
-// --- FETCH ACTIVITIES ---
 app.get('/api/activities/:userId', (req, res) => {
     const userId = req.params.userId;
     db.all(`SELECT * FROM activities WHERE user_id = ? ORDER BY timestamp DESC LIMIT 30`, [userId], (err, rows) => {
@@ -151,7 +149,6 @@ app.get('/api/activities/:userId', (req, res) => {
     });
 });
 
-// --- FETCH FINANCE LEDGER ---
 app.get('/api/finance-ledger/:userId', (req, res) => {
     const userId = req.params.userId;
     db.all(`SELECT id, pair as title, amount, result as status, timestamp, 'trade' as type FROM trades WHERE user_id = ?`, [userId], (err, trades) => {
@@ -165,22 +162,17 @@ app.get('/api/finance-ledger/:userId', (req, res) => {
     });
 });
 
-// --- FETCH PROGRESS STATS ---
 app.get('/api/progress-stats/:userId/:accountType', (req, res) => {
     const userId = req.params.userId;
     const accountType = req.params.accountType;
-    
-    db.all(`SELECT amount, result, timestamp FROM trades WHERE user_id = ? AND account_type = ? ORDER BY timestamp ASC`, 
-    [userId, accountType], (err, rows) => {
+    db.all(`SELECT amount, result, timestamp FROM trades WHERE user_id = ? AND account_type = ? ORDER BY timestamp ASC`, [userId, accountType], (err, rows) => {
         if (err) return res.status(500).json({ success: false, message: "Failed to fetch stats" });
-        
         let bestTrade = 0;
         let totalVolume = 0;
         let totalWins = 0;
         let currentStreak = 0;
         let maxStreak = 0;
         let dailyProfit = {};
-        
         rows.forEach(r => {
             totalVolume += r.amount;
             if (r.result === 'WIN') {
@@ -189,15 +181,12 @@ app.get('/api/progress-stats/:userId/:accountType', (req, res) => {
                 if (profit > bestTrade) bestTrade = profit;
                 currentStreak++;
                 if (currentStreak > maxStreak) maxStreak = currentStreak;
-            } else if (r.result === 'LOSS') {
-                currentStreak = 0;
-            }
+            } else if (r.result === 'LOSS') { currentStreak = 0; }
             let dateStr = new Date(r.timestamp).toISOString().split('T')[0];
             if (!dailyProfit[dateStr]) dailyProfit[dateStr] = 0;
             if (r.result === 'WIN') dailyProfit[dateStr] += (r.amount * 0.92);
             else if (r.result === 'LOSS') dailyProfit[dateStr] -= r.amount;
         });
-
         let last7Days = [];
         for (let i = 6; i >= 0; i--) {
             let d = new Date();
@@ -205,16 +194,43 @@ app.get('/api/progress-stats/:userId/:accountType', (req, res) => {
             let dateStr = d.toISOString().split('T')[0];
             last7Days.push({ date: d.toLocaleDateString('en-US', { weekday: 'short' }), profit: dailyProfit[dateStr] || 0 });
         }
-
         res.json({ success: true, bestTrade: bestTrade.toFixed(2), totalVolume: totalVolume.toFixed(2), maxStreak: maxStreak, totalWins: totalWins, last7Days: last7Days });
     });
 });
 
 // --- TRADING ROUTES ---
+
+// NEW: Check Daily Profit before placing trade
 app.post('/api/place-trade', (req, res) => {
     const { userId, accountType, amount, tradeData } = req.body;
     if (!userId) return res.status(401).json({ success: false, message: "Not logged in" });
 
+    // If it's the Demo account, bypass the daily limit check
+    if (accountType === 'demo') {
+        executeTrade(userId, accountType, amount, tradeData, res);
+        return;
+    }
+
+    // For Real account, check today's profit
+    db.all(`SELECT amount, result FROM trades WHERE user_id = ? AND account_type = 'real' AND DATE(timestamp) = DATE('now')`, [userId], (err, rows) => {
+        if (err) return res.status(500).json({ success: false, message: "Database error" });
+        
+        let todayProfit = 0;
+        rows.forEach(r => {
+            if (r.result === 'WIN') todayProfit += (r.amount * 0.92); // Assuming 92% average payout
+            else if (r.result === 'LOSS') todayProfit -= r.amount;
+        });
+
+        if (todayProfit >= 499) {
+            return res.status(400).json({ success: false, message: "Daily profit limit of $499 reached. Please return tomorrow." });
+        }
+
+        // If under 499, proceed with trade
+        executeTrade(userId, accountType, amount, tradeData, res);
+    });
+});
+
+function executeTrade(userId, accountType, amount, tradeData, res) {
     let balanceCol = accountType === 'demo' ? 'demo_balance' : 'real_balance';
     db.run(`UPDATE users SET ${balanceCol} = ${balanceCol} - ? WHERE id = ?`, [amount, userId], function(err) {
         if (err) return res.status(500).json({ success: false, message: "Trade failed" });
@@ -231,7 +247,7 @@ app.post('/api/place-trade', (req, res) => {
         }
         res.json({ success: true, message: "Trade placed" });
     });
-});
+}
 
 app.post('/api/close-trade', (req, res) => {
     const { userId, accountType, tradeId, amount, direction, entryPrice, exitPrice, pair } = req.body;
@@ -276,8 +292,7 @@ app.get('/api/trade-history/:userId', (req, res) => {
 app.get('/api/today-stats/:userId/:accountType', (req, res) => {
     const userId = req.params.userId;
     const accountType = req.params.accountType;
-    db.all(`SELECT amount, result FROM trades WHERE user_id = ? AND account_type = ? AND DATE(timestamp) = DATE('now')`, 
-    [userId, accountType], (err, rows) => {
+    db.all(`SELECT amount, result FROM trades WHERE user_id = ? AND account_type = ? AND DATE(timestamp) = DATE('now')`, [userId, accountType], (err, rows) => {
         if (err) return res.status(500).json({ success: false, message: "Failed to fetch stats" });
         let totalTrades = rows.length;
         let wins = rows.filter(r => r.result === 'WIN').length;
