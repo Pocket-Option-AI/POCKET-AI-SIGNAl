@@ -48,16 +48,12 @@
             </div>
         </header>
 
-        <!-- CHART CONTROLS WITH NEW TOGGLE -->
         <div class="chart-controls" style="display: flex; justify-content: space-between; align-items: center;">
             <select disabled style="width: 40%;"><option>EUR/USD (Live)</option></select>
-            
-            <!-- LINE / CANDLE TOGGLE -->
             <div style="display: flex; background: #151e32; border-radius: 8px; border: 1px solid #1e293b; overflow: hidden;">
                 <button id="btn-line" onclick="setChartType('line')" style="background: #3b82f6; color: white; border: none; padding: 8px 12px; font-size: 12px; font-weight: bold; cursor: pointer;">📈 Line</button>
                 <button id="btn-candle" onclick="setChartType('candle')" style="background: transparent; color: #94a3b8; border: none; padding: 8px 12px; font-size: 12px; font-weight: bold; cursor: pointer;">📊 Candles</button>
             </div>
-
             <select id="chart-timeframe" style="width: 30%;">
                 <option value="5">5s</option>
                 <option value="15" selected>15s</option>
@@ -75,6 +71,14 @@
         </div>
 
         <div class="trade-panel">
+            
+            <!-- NEW LIVE WINNING TICKER -->
+            <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 6px; padding: 8px; margin-bottom: 10px; overflow: hidden; position: relative; height: 30px;">
+                <div id="live-ticker" style="color: #22c55e; font-size: 11px; font-weight: bold; white-space: nowrap; position: absolute; right: -100%; transition: right 0.5s ease-out;">
+                    Loading recent wins...
+                </div>
+            </div>
+
             <div class="slider-container">
                 <span class="slider-label green" id="green-percent">9%</span>
                 <input type="range" min="0" max="100" value="9" class="trade-slider" id="payout-slider">
@@ -124,7 +128,6 @@
         </nav>
     </div>
 
-    <!-- ALL MODALS REMAIN EXACTLY THE SAME AS BEFORE -->
     <div id="social-menu" class="profile-menu">
         <div class="profile-header">
             <div>
@@ -227,6 +230,7 @@
 
     <div id="signals-modal" class="modal"><div class="modal-content ai-card" id="signals-content"></div></div>
     <div id="ai-modal" class="modal"><div class="modal-content ai-card" id="ai-content"></div></div>
+    
     <div id="chat-modal" class="modal">
         <div class="modal-content" style="padding: 0; overflow: hidden; height: 500px; display: flex; flex-direction: column; border-radius: 12px; background: #0e1621;">
             <div style="background: #17212b; padding: 15px; border-bottom: 1px solid #242f3d; display: flex; justify-content: space-between; align-items: center;">
@@ -250,6 +254,7 @@
             </div>
         </div>
     </div>
+    
     <div id="deposit-modal" class="modal">
         <div class="modal-content">
             <span class="close-btn" onclick="closeModal('deposit-modal')">&times;</span>
@@ -264,6 +269,7 @@
             </div>
         </div>
     </div>
+    
     <div id="stripe-modal" class="modal">
         <div class="modal-content" style="background: #ffffff; color: #1a202c;">
             <span class="close-btn" onclick="closeModal('stripe-modal')" style="color: #64748b;">&times;</span>
@@ -280,6 +286,7 @@
             <button id="stripe-pay-btn" onclick="processStripePayment()" style="width: 100%; padding: 14px; background: #2563eb; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">Pay</button>
         </div>
     </div>
+    
     <div id="withdraw-modal" class="modal">
         <div class="modal-content">
             <span class="close-btn" onclick="closeModal('withdraw-modal')">&times;</span>
@@ -305,6 +312,7 @@
             <button id="withdraw-btn" onclick="processWithdrawal()" style="width: 100%; padding: 14px; background: #ef4444; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">Confirm Withdrawal</button>
         </div>
     </div>
+    
     <div id="wallet-modal" class="modal">
         <div class="modal-content">
             <span class="close-btn" onclick="closeModal('wallet-modal')">&times;</span>
@@ -313,8 +321,12 @@
                 <p>Available Balance</p>
                 <h3 id="wallet-balance-text">$0.00</h3>
             </div>
+            <div style="background: #0b1120; border-radius: 8px; padding: 10px; max-height: 150px; overflow-y: auto;">
+                <div id="wallet-ledger"></div>
+            </div>
         </div>
     </div>
+
     <script src="app.js"></script>
 </body>
 </html>
