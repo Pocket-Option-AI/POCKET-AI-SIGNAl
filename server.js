@@ -21,10 +21,12 @@ db.serialize(() => {
         password TEXT,
         demo_balance REAL DEFAULT 50000,
         real_balance REAL DEFAULT 110,
-        real_start_balance REAL DEFAULT 110
+        real_start_balance REAL DEFAULT 110,
+        telegram_chat_id TEXT
     )`);
 
     db.run(`ALTER TABLE users ADD COLUMN real_start_balance REAL DEFAULT 110`, (err) => {});
+    db.run(`ALTER TABLE users ADD COLUMN telegram_chat_id TEXT`, (err) => {});
 
     db.run(`CREATE TABLE IF NOT EXISTS trades (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -57,7 +59,6 @@ db.serialize(() => {
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
 
-    // NEW SIGNALS TABLE
     db.run(`CREATE TABLE IF NOT EXISTS signals (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         pair TEXT,
@@ -77,22 +78,133 @@ function logActivity(userId, action, icon) {
 }
 
 // --- TELEGRAM CONFIGURATION ---
-const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
+const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || '9128311691:AAHNoHNFCLjpB7QE89j7poUBGvAq-xIRP5o';
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
-async function sendTelegramMessage(message) {
-    if (!TELEGRAM_TOKEN || !TELEGRAM_CHAT_ID) return;
+async function sendTelegramMessage(chatId, message, buttons = null) {
+    if (!TELEGRAM_TOKEN || !chatId) return;
     try {
         const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`;
+        let body = { chat_id: chatId, text: message, parse_mode: 'HTML' };
+        if (buttons) {
+            body.reply_markup = { inline_keyboard: buttons };
+        }
         await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: message, parse_mode: 'HTML' })
+            body: JSON.stringify(body)
         });
     } catch (error) { console.error("Telegram error:", error); }
 }
 
-// --- AI SIGNAL GENERATOR ENGINE (NEW) ---
+// --- TELEGRAM WEBHOOK (NEW) ---
+app.post('/api/telegram-webhook', async (req, res) => {
+    const { message, callback_query } = req.body;
+
+    // Handle /start command with user ID
+    if (message && message.text) {
+        let chatId = message.chat.id.toString();
+        let text = message.text;
+
+        if (text.startsWith('/start')) {
+            let parts = text.split(' ');
+            if (parts.length > 1) {
+                let userId = parts[1];
+                db.run(`UPDATE users SET telegram_chat_id = ? WHERE id = ?`, [chatId, userId], function(err) {
+                    if (err) {
+                        sendTelegramMessage(chatId, "❌ Failed to link account. Please try again.");
+                        return;
+                    }
+                    logActivity(userId, "Linked Telegram bot", "🔗");
+                    sendTelegramMessage(chatId, "✅ Account successfully linked!\n\nUse the buttons below to trade on your <b>Real Account</b>:", [
+                        [{ text: "BUY $10", callback_data: "buy_10" }, { text: "SELL $10", callback_data: "sell_10" }],
+                        [{ text: "BUY $20", callback_data: "buy_20" }, { text: "SELL $20", callback_data: "sell_20" }],
+                        [{ text: "BUY $30", callback_data: "buy_30" }, { text: "SELL $30", callback_data: "sell_30" }],
+                        [{ text: "BUY $40", callback_data: "buy_40" }, { text: "SELL $40", callback_data: "sell_40" }],
+                        [{ text: "BUY $55", callback_data: "buy_55" }, { text: "SELL $55", callback_data: "sell_55" }],
+                        [{ text: "BUY $70", callback_data: "buy_70" }, { text: "SELL $70", callback_data: "sell_70" }],
+                        [{ text: "BUY $85", callback_data: "buy_85" }, { text: "SELL $85", callback_data: "sell_85" }],
+                        [{ text: "BUY $110", callback_data: "buy_110" }, { text: "SELL $110", callback_data: "sell_110" }]
+                    ]);
+                });
+            } else {
+                sendTelegramMessage(chatId, "👋 Welcome to Pocket AI Signal!\n\nPlease click the 'Connect Telegram' button on the website to link your account.");
+            }
+        }
+    }
+
+    // Handle button clicks
+    if (callback_query) {
+        let chatId = callback_query.message.chat.id.toString();
+        let data = callback_query.data;
+        let [action, amountStr] = data.split('_');
+        let amount = parseFloat(amountStr);
+        let direction = action === 'buy' ? 'BUY' : 'SELL';
+
+        // Find user by chat ID
+        db.get(`SELECT id, real_balance, real_start_balance FROM users WHERE telegram_chat_id = ?`, [chatId], async (err, user) => {
+            if (err || !user) {
+                sendTelegramMessage(chatId, "❌ Account not linked. Please connect on the website.");
+                return;
+            }
+
+            // Check Daily Limit
+            let dailyProfit = user.real_balance - user.real_start_balance;
+            if (dailyProfit >= 499) {
+                sendTelegramMessage(chatId, "❌ Daily profit limit of $499 reached. Please return tomorrow.");
+                return;
+            }
+
+            // Check Balance
+            if (amount > user.real_balance) {
+                sendTelegramMessage(chatId, "❌ Insufficient balance.");
+                return;
+            }
+
+            // Place Trade
+            let mockPrice = 1.0850 + (Math.random() - 0.5) * 0.005;
+            db.run(`UPDATE users SET real_balance = real_balance - ? WHERE id = ?`, [amount, user.id], function(err) {
+                if (err) {
+                    sendTelegramMessage(chatId, "❌ Trade failed.");
+                    return;
+                }
+
+                db.run(`INSERT INTO trades (user_id, pair, direction, amount, entry_price, expiry, account_type) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                    [user.id, 'EUR/USD', direction, amount, mockPrice, 15, 'real']);
+
+                logActivity(user.id, `Opened a ${direction} trade via Telegram for $${amount}`, "🚀");
+
+                sendTelegramMessage(chatId, `🚀 <b>Trade Placed!</b>\n\nPair: EUR/USD\nDirection: ${direction}\nAmount: $${amount}\nExpiry: 15s\n\nWaiting for result...`);
+
+                // Simulate trade result after 15 seconds
+                setTimeout(() => {
+                    let isWin = Math.random() * 100 <= 98;
+                    let payout = isWin ? (amount * 1.92) : 0;
+                    let resultStr = isWin ? 'WIN' : 'LOSS';
+
+                    db.run(`UPDATE users SET real_balance = real_balance + ? WHERE id = ?`, [payout, user.id], function(err) {
+                        if (err) return;
+
+                        db.run(`UPDATE trades SET result = ? WHERE id = (SELECT MAX(id) FROM trades WHERE user_id = ?)`, [resultStr, user.id]);
+
+                        if (isWin) {
+                            let profit = (payout - amount).toFixed(2);
+                            sendTelegramMessage(chatId, `🏆 <b>TRADE WON!</b>\n\nProfit: +$${profit}\nNew Balance: $${(user.real_balance - amount + payout).toFixed(2)}`);
+                            logActivity(user.id, `Won a Telegram trade (+$${profit})`, "🏆");
+                        } else {
+                            sendTelegramMessage(chatId, `📉 <b>TRADE LOST</b>\n\nLoss: -$${amount}\nNew Balance: $${(user.real_balance - amount).toFixed(2)}`);
+                            logActivity(user.id, `Lost a Telegram trade (-$${amount})`, "📉");
+                        }
+                    });
+                }, 15000);
+            });
+        });
+    }
+
+    res.sendStatus(200);
+});
+
+// --- AI SIGNAL GENERATOR ENGINE ---
 function generateAISignal() {
     let mockPrice = 1.0850 + (Math.random() - 0.5) * 0.005;
     let rsi = Math.floor(Math.random() * 40) + 30;
@@ -101,26 +213,24 @@ function generateAISignal() {
     let tp = signal === "BUY" ? (mockPrice + 0.0020).toFixed(5) : (mockPrice - 0.0020).toFixed(5);
     let sl = signal === "BUY" ? (mockPrice - 0.0010).toFixed(5) : (mockPrice + 0.0010).toFixed(5);
 
-    // 98% Win simulation for the signal feed
     let isWin = Math.random() * 100 <= 98;
     let result = isWin ? "WIN" : "LOSS";
 
-    // Save to database
     db.run(`INSERT INTO signals (pair, direction, entry_price, tp, sl, strength, result) VALUES (?, ?, ?, ?, ?, ?, ?)`,
         ["EUR/USD", signal, mockPrice, tp, sl, rsi, result]);
 
-    // Send to Telegram
-    let msg = `🚨 <b>AI SIGNAL DETECTED</b> 🚨\n\n` +
-              `Pair: <b>EUR/USD</b>\n` +
-              `Direction: <b>${signal}</b>\n` +
-              `Entry: ${mockPrice.toFixed(5)}\n` +
-              `Take Profit: ${tp}\n` +
-              `Stop Loss: ${sl}\n\n` +
-              `<i>Generated by Pocket AI Engine</i>`;
-    sendTelegramMessage(msg);
+    if (TELEGRAM_CHAT_ID) {
+        let msg = `🚨 <b>AI SIGNAL DETECTED</b> 🚨\n\n` +
+                  `Pair: <b>EUR/USD</b>\n` +
+                  `Direction: <b>${signal}</b>\n` +
+                  `Entry: ${mockPrice.toFixed(5)}\n` +
+                  `Take Profit: ${tp}\n` +
+                  `Stop Loss: ${sl}\n\n` +
+                  `<i>Generated by Pocket AI Engine</i>`;
+        sendTelegramMessage(TELEGRAM_CHAT_ID, msg);
+    }
 }
 
-// Pre-fill 5 historical signals if table is empty
 db.get(`SELECT COUNT(*) as count FROM signals`, (err, row) => {
     if (row && row.count === 0) {
         for (let i = 0; i < 5; i++) {
@@ -134,7 +244,6 @@ db.get(`SELECT COUNT(*) as count FROM signals`, (err, row) => {
     }
 });
 
-// Run AI every 30 seconds
 setInterval(generateAISignal, 30000);
 
 // --- AUTHENTICATION ROUTES ---
@@ -194,8 +303,10 @@ function executeTrade(userId, accountType, amount, tradeData, res) {
             logActivity(userId, `Opened a ${tradeData.direction} trade on ${tradeData.pair} for $${amount}`, "🚀");
             
             let action = tradeData.direction === 'BUY' ? '🟢 BUY' : '🔴 SELL';
-            let msg = `<b>🚀 NEW TRADE OPENED</b>\n\nPair: ${tradeData.pair}\nAction: ${action}\nAmount: $${amount}\nAccount: ${accountType.toUpperCase()}`;
-            sendTelegramMessage(msg);
+            if (TELEGRAM_CHAT_ID) {
+                let msg = `<b>🚀 NEW TRADE OPENED</b>\n\nPair: ${tradeData.pair}\nAction: ${action}\nAmount: $${amount}\nAccount: ${accountType.toUpperCase()}`;
+                sendTelegramMessage(TELEGRAM_CHAT_ID, msg);
+            }
         }
         res.json({ success: true, message: "Trade placed" });
     });
@@ -224,8 +335,10 @@ app.post('/api/close-trade', (req, res) => {
         if (isWin) {
             let profit = (payout - amount).toFixed(2);
             logActivity(userId, `Won a trade on ${pair} (+$${profit})`, "🏆");
-            let msg = `🤖 <b>AI SIGNAL WON!</b>\n\nPair: ${pair || 'EUR/USD'}\nProfit: <b>+$${profit}</b>\nAccount: ${accountType.toUpperCase()}`;
-            sendTelegramMessage(msg);
+            if (TELEGRAM_CHAT_ID) {
+                let msg = `🤖 <b>AI SIGNAL WON!</b>\n\nPair: ${pair || 'EUR/USD'}\nProfit: <b>+$${profit}</b>\nAccount: ${accountType.toUpperCase()}`;
+                sendTelegramMessage(TELEGRAM_CHAT_ID, msg);
+            }
         } else {
             logActivity(userId, `Lost a trade on ${pair} (-$${amount})`, "📉");
         }
@@ -233,7 +346,6 @@ app.post('/api/close-trade', (req, res) => {
     });
 });
 
-// --- NEW: FETCH SIGNAL FEED ---
 app.get('/api/signal-feed', (req, res) => {
     db.all(`SELECT * FROM signals ORDER BY timestamp DESC LIMIT 15`, [], (err, rows) => {
         if (err) return res.status(500).json({ success: false, message: "Failed to fetch signals" });
@@ -241,7 +353,6 @@ app.get('/api/signal-feed', (req, res) => {
     });
 });
 
-// --- OTHER ROUTES ---
 app.post('/api/reset-demo', (req, res) => {
     const { userId } = req.body;
     if (!userId) return res.status(401).json({ success: false, message: "Not logged in" });
