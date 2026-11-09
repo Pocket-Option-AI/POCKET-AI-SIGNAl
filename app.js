@@ -28,11 +28,77 @@ let marketInterval = null;
 let payoutInterval = null;
 let historyTimer = null;
 
-// --- PROFILE PAGE LOGIC (NEW) ---
+// --- TODAY'S STATS LOGIC (NEW) ---
+async function fetchDetailedStats() {
+    if (!state.userId) return;
+    let accountType = state.account;
+    
+    document.getElementById('today-stats-account-label').innerText = "Account: " + accountType.toUpperCase();
+    
+    let goalContainer = document.getElementById('daily-goal-container');
+    if (accountType === 'real') {
+        goalContainer.style.display = 'block';
+    } else {
+        goalContainer.style.display = 'none';
+    }
+
+    try {
+        const res = await fetch(`/api/detailed-stats/${state.userId}/${accountType}`);
+        const data = await res.json();
+        
+        if (data.success) {
+            document.getElementById('ts-total-trades').innerText = data.totalTrades;
+            document.getElementById('ts-total-volume').innerText = "$" + data.totalVolume;
+            document.getElementById('ts-total-wins').innerText = data.totalWins;
+            document.getElementById('ts-total-losses').innerText = data.totalLosses;
+
+            if (accountType === 'real') {
+                let current = parseFloat(data.currentDailyProfit);
+                let target = 499;
+                let percent = (current / target) * 100;
+                if (percent > 100) percent = 100;
+                if (percent < 0) percent = 0;
+                
+                let bar = document.getElementById('daily-goal-bar');
+                bar.style.width = percent + "%";
+                
+                if (current >= 499) {
+                    bar.style.background = "#ef4444";
+                } else {
+                    bar.style.background = "#22c55e";
+                }
+                
+                document.getElementById('daily-goal-text').innerText = `$${current.toFixed(2)} / $499.00`;
+            }
+
+            let breakdownList = document.getElementById('pair-breakdown-list');
+            let pairs = Object.keys(data.pairStats);
+            
+            if (pairs.length === 0) {
+                breakdownList.innerHTML = '<p style="color: #64748b; text-align: center; font-size: 13px;">No trades yet today.</p>';
+            } else {
+                breakdownList.innerHTML = '';
+                pairs.forEach(pair => {
+                    let profit = data.pairStats[pair];
+                    let color = profit >= 0 ? '#22c55e' : '#ef4444';
+                    let sign = profit >= 0 ? '+' : '-';
+                    breakdownList.innerHTML += `
+                        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #1e293b; font-size: 12px;">
+                            <span style="color: white;">${pair}</span>
+                            <span style="color: ${color}; font-weight: bold;">${sign}$${Math.abs(profit).toFixed(2)}</span>
+                        </div>
+                    `;
+                });
+            }
+        }
+    } catch (e) { console.error("Failed to load detailed stats:", e); }
+}
+
+// --- PROFILE PAGE LOGIC ---
 function openProfilePage() {
-    closeModal('profile-menu'); // Close profile menu if open
+    closeModal('profile-menu');
     document.getElementById('profile-input-name').value = state.displayName;
-    document.getElementById('profile-input-email').value = "user@example.com"; // We will populate this on load
+    document.getElementById('profile-input-email').value = "user@example.com";
     document.getElementById('profile-input-id').value = "#" + state.userId;
     openModal('profile-page-modal');
 }
@@ -273,7 +339,7 @@ async function fetchActivities() {
     } catch (e) { console.error(e); }
 }
 
-// --- TODAY'S STATS FETCH ---
+// --- TODAY'S STATS FETCH (SMALL CARD) ---
 async function fetchTodayStats() {
     if (!state.userId) return;
     let accountTypeEl = document.getElementById('account-type');
@@ -900,6 +966,7 @@ function openModal(modalId) {
     if (modalId === 'finance-modal') fetchFinanceLedger();
     if (modalId === 'progress-modal') fetchProgressStats();
     if (modalId === 'activities-modal') fetchActivities();
+    if (modalId === 'today-stats-modal') fetchDetailedStats();
     if (modalId === 'trading-modal') {
         switchTradingTab('open');
     }
