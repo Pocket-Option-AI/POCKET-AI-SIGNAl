@@ -28,7 +28,7 @@ let marketInterval = null;
 let payoutInterval = null;
 let historyTimer = null;
 
-// --- TODAY'S STATS LOGIC (NEW) ---
+// --- TODAY'S STATS LOGIC (UPDATED TO $5000) ---
 async function fetchDetailedStats() {
     if (!state.userId) return;
     let accountType = state.account;
@@ -54,7 +54,8 @@ async function fetchDetailedStats() {
 
             if (accountType === 'real') {
                 let current = parseFloat(data.currentDailyProfit);
-                let target = 499;
+                // CHANGED TO 5000
+                let target = 5000;
                 let percent = (current / target) * 100;
                 if (percent > 100) percent = 100;
                 if (percent < 0) percent = 0;
@@ -62,13 +63,15 @@ async function fetchDetailedStats() {
                 let bar = document.getElementById('daily-goal-bar');
                 bar.style.width = percent + "%";
                 
-                if (current >= 499) {
+                // CHANGED TO 5000
+                if (current >= 5000) {
                     bar.style.background = "#ef4444";
                 } else {
                     bar.style.background = "#22c55e";
                 }
                 
-                document.getElementById('daily-goal-text').innerText = `$${current.toFixed(2)} / $499.00`;
+                // CHANGED TO 5000
+                document.getElementById('daily-goal-text').innerText = `$${current.toFixed(2)} / $5000.00`;
             }
 
             let breakdownList = document.getElementById('pair-breakdown-list');
