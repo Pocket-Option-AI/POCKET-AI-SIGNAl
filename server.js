@@ -266,7 +266,52 @@ app.post('/api/login', (req, res) => {
     });
 });
 
-// --- NEW: UPDATE PROFILE ROUTE ---
+// --- NEW: DETAILED STATS ROUTE ---
+app.get('/api/detailed-stats/:userId/:accountType', (req, res) => {
+    const userId = req.params.userId;
+    const accountType = req.params.accountType;
+    
+    db.all(`SELECT pair, amount, result FROM trades WHERE user_id = ? AND account_type = ? AND DATE(timestamp) = DATE('now')`, [userId, accountType], (err, rows) => {
+        if (err) return res.status(500).json({ success: false, message: "Failed to fetch stats" });
+        
+        let totalTrades = rows.length;
+        let totalWins = rows.filter(r => r.result === 'WIN').length;
+        let totalLosses = rows.filter(r => r.result === 'LOSS').length;
+        let totalVolume = 0;
+        let totalProfit = 0;
+        let pairStats = {};
+
+        rows.forEach(r => {
+            totalVolume += r.amount;
+            
+            let profitChange = 0;
+            if (r.result === 'WIN') profitChange = r.amount * 0.92;
+            else if (r.result === 'LOSS') profitChange = -r.amount;
+            
+            totalProfit += profitChange;
+            
+            if (!pairStats[r.pair]) pairStats[r.pair] = 0;
+            pairStats[r.pair] += profitChange;
+        });
+
+        // Get current daily profit from user balance for the $499 limit
+        db.get(`SELECT real_balance, real_start_balance FROM users WHERE id = ?`, [userId], (err, user) => {
+            let currentDailyProfit = user.real_balance - user.real_start_balance;
+            
+            res.json({
+                success: true,
+                totalTrades,
+                totalWins,
+                totalLosses,
+                totalVolume: totalVolume.toFixed(2),
+                totalProfit: totalProfit.toFixed(2),
+                currentDailyProfit: currentDailyProfit.toFixed(2),
+                pairStats
+            });
+        });
+    });
+});
+
 app.post('/api/update-profile', (req, res) => {
     const { userId, displayName } = req.body;
     if (!userId || !displayName) return res.status(400).json({ success: false, message: "Missing fields" });
