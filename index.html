@@ -240,7 +240,7 @@
         </div>
         <div class="profile-links">
             <div class="menu-item" onclick="openModal('progress-modal')"><span>📈 Your Progress</span> <span>></span></div>
-            <div class="menu-item" onclick="alert('Coming Soon')"><span>📊 Today's Stats</span> <span>></span></div>
+            <div class="menu-item" onclick="openModal('today-stats-modal')"><span>📊 Today's Stats</span> <span>></span></div>
             <div class="menu-item" onclick="openModal('trading-modal')"><span>💼 Trading</span> <span>></span></div>
             <div class="menu-item" onclick="openModal('finance-modal')"><span>💰 Finance</span> <span>></span></div>
             <div class="menu-item" onclick="openModal('profile-page-modal')"><span>👤 Profile</span> <span>></span></div>
@@ -255,7 +255,50 @@
         </div>
     </div>
 
-    <!-- NEW PROFILE PAGE MODAL -->
+    <!-- NEW TODAY'S STATS MODAL -->
+    <div id="today-stats-modal" class="modal">
+        <div class="modal-content" style="padding-bottom: 0;">
+            <span class="close-btn" onclick="closeModal('today-stats-modal')">&times;</span>
+            <h2>Today's Performance</h2>
+            <p style="font-size: 12px; color: #94a3b8; margin-bottom: 15px;" id="today-stats-account-label">Account: DEMO</p>
+            
+            <!-- DAILY GOAL PROGRESS BAR (REAL ONLY) -->
+            <div id="daily-goal-container" style="display: none; margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; font-size: 12px; color: #94a3b8; margin-bottom: 5px;">
+                    <span>Daily Profit Goal</span>
+                    <span id="daily-goal-text">$0.00 / $499.00</span>
+                </div>
+                <div style="width: 100%; height: 12px; background: #1e293b; border-radius: 6px; overflow: hidden;">
+                    <div id="daily-goal-bar" style="width: 0%; height: 100%; background: #22c55e; transition: width 0.3s ease;"></div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+                <div style="background: #0b1120; padding: 12px; border-radius: 8px; text-align: center;">
+                    <p style="font-size: 10px; color: #64748b;">Total Trades</p>
+                    <p id="ts-total-trades" style="font-size: 18px; font-weight: bold; color: white;">0</p>
+                </div>
+                <div style="background: #0b1120; padding: 12px; border-radius: 8px; text-align: center;">
+                    <p style="font-size: 10px; color: #64748b;">Total Volume</p>
+                    <p id="ts-total-volume" style="font-size: 18px; font-weight: bold; color: white;">$0.00</p>
+                </div>
+                <div style="background: #0b1120; padding: 12px; border-radius: 8px; text-align: center;">
+                    <p style="font-size: 10px; color: #64748b;">Wins</p>
+                    <p id="ts-total-wins" style="font-size: 18px; font-weight: bold; color: #22c55e;">0</p>
+                </div>
+                <div style="background: #0b1120; padding: 12px; border-radius: 8px; text-align: center;">
+                    <p style="font-size: 10px; color: #64748b;">Losses</p>
+                    <p id="ts-total-losses" style="font-size: 18px; font-weight: bold; color: #ef4444;">0</p>
+                </div>
+            </div>
+
+            <h4 style="color: #94a3b8; font-size: 14px; margin-bottom: 10px;">Asset Breakdown</h4>
+            <div id="pair-breakdown-list" style="background: #0b1120; border-radius: 8px; padding: 10px; margin-bottom: 20px; max-height: 200px; overflow-y: auto;">
+                <p style="color: #64748b; text-align: center; font-size: 13px;">No trades yet today.</p>
+            </div>
+        </div>
+    </div>
+
     <div id="profile-page-modal" class="modal">
         <div class="modal-content" style="text-align: center;">
             <span class="close-btn" onclick="closeModal('profile-page-modal')">&times;</span>
