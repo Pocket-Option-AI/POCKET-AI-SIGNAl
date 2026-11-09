@@ -147,9 +147,10 @@ app.post('/api/telegram-webhook', async (req, res) => {
                 return;
             }
 
+            // CHANGED TO 5000
             let dailyProfit = user.real_balance - user.real_start_balance;
-            if (dailyProfit >= 499) {
-                sendTelegramMessage(chatId, "❌ Daily profit limit of $499 reached. Please return tomorrow.");
+            if (dailyProfit >= 5000) {
+                sendTelegramMessage(chatId, "❌ Daily profit limit of $5000 reached. Please return tomorrow.");
                 return;
             }
 
@@ -266,7 +267,6 @@ app.post('/api/login', (req, res) => {
     });
 });
 
-// --- NEW: DETAILED STATS ROUTE ---
 app.get('/api/detailed-stats/:userId/:accountType', (req, res) => {
     const userId = req.params.userId;
     const accountType = req.params.accountType;
@@ -294,7 +294,6 @@ app.get('/api/detailed-stats/:userId/:accountType', (req, res) => {
             pairStats[r.pair] += profitChange;
         });
 
-        // Get current daily profit from user balance for the $499 limit
         db.get(`SELECT real_balance, real_start_balance FROM users WHERE id = ?`, [userId], (err, user) => {
             let currentDailyProfit = user.real_balance - user.real_start_balance;
             
@@ -335,9 +334,11 @@ app.post('/api/place-trade', (req, res) => {
 
     db.get(`SELECT real_balance, real_start_balance FROM users WHERE id = ?`, [userId], (err, user) => {
         if (err || !user) return res.status(404).json({ success: false, message: "User not found" });
+        
+        // CHANGED TO 5000
         let dailyProfit = user.real_balance - user.real_start_balance;
-        if (dailyProfit >= 499) {
-            return res.status(400).json({ success: false, message: "Daily profit limit of $499 reached. Please return tomorrow." });
+        if (dailyProfit >= 5000) {
+            return res.status(400).json({ success: false, message: "Daily profit limit of $5000 reached. Please return tomorrow." });
         }
         executeTrade(userId, accountType, amount, tradeData, res);
     });
